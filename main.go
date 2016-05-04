@@ -119,9 +119,8 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, expectation := range request.Expectations {
-		s.Proxy.OnRequest(conditionsForExpectation(expectation)...).DoFunc(func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-			return nil, goproxy.NewResponse(r, "text/plain", expectation.RespondWith.Status, expectation.RespondWith.Body)
-		})
+		s.Proxy.OnRequest(conditionsForExpectation(expectation)...).
+			DoFunc(proxyRespond(expectation.RespondWith))
 	}
 }
 
@@ -131,15 +130,21 @@ func conditionsForExpectation(expectation Expectation) []goproxy.ReqCondition {
 	for idx, criteria := range expectation.RequestCriteria {
 		switch criteria.Type {
 		case CriteriaTypeMethod:
-			conditions[idx] = ReqMethodMatches(criteria.Value)
+			conditions[idx] = reqMethodMatches(criteria.Value)
 		}
 	}
 
 	return conditions
 }
 
-func ReqMethodMatches(method string) goproxy.ReqConditionFunc {
+func reqMethodMatches(method string) goproxy.ReqConditionFunc {
 	return func(r *http.Request, ctx *goproxy.ProxyCtx) bool {
 		return r.Method == method
+	}
+}
+
+func proxyRespond(rw RespondWith) func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+	return func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+		return nil, goproxy.NewResponse(r, "text/plain", rw.Status, rw.Body)
 	}
 }
