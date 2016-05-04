@@ -13,19 +13,15 @@ import (
 )
 
 func TestMethodExpectation(t *testing.T) {
-	proxy := goproxy.NewProxyHttpServer()
-
-	proxyServer := httptest.NewServer(proxy)
+	proxy, proxyServer, proxyClient := buildProxy()
 	defer proxyServer.Close()
 
-	websiteServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Got Through!")
-	}))
+	websiteServer := buildWebsiteServer()
 	defer websiteServer.Close()
 
 	server := Server{Proxy: proxy}
 
-	req, err := http.NewRequest("POST", "/expectations", strings.NewReader(
+	createExpectations(t, server,
 		`{
 			"expectations": [
 				{
@@ -37,28 +33,39 @@ func TestMethodExpectation(t *testing.T) {
 					],
 
 					"respond_with": {
-						"status": 200,
-						"body": "Hello World"
+						"status": 418,
+						"body": "Proxy Response"
 					}
 				}
 			]
 		}`,
-	))
-	if err != nil {
-		t.Fatal(err)
-	}
+	)
 
-	rec := httptest.NewRecorder()
-	server.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("unexpected response code: %d", rec.Code)
+	for _, example := range []struct {
+		method string
+		status int
+		body   string
+	}{
+		{"POST", http.StatusTeapot, "Proxy Response"},
+		{"GET", http.StatusOK, "Got Through"},
+		{"PUT", http.StatusOK, "Got Through"},
+		{"DELETE", http.StatusOK, "Got Through"},
+	} {
+		req, err := http.NewRequest(example.method, websiteServer.URL, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := proxyClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		checkResponse(t, resp, example.status, example.body)
 	}
+}
 
-	req, err = http.NewRequest("POST", websiteServer.URL, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+func buildProxy() (*goproxy.ProxyHttpServer, *httptest.Server, *http.Client) {
+	proxy := goproxy.NewProxyHttpServer()
+	proxyServer := httptest.NewServer(proxy)
 
 	client := &http.Client{
 		Transport: &http.Transport{
@@ -68,13 +75,37 @@ func TestMethodExpectation(t *testing.T) {
 		},
 	}
 
-	resp, err := client.Do(req)
+	return proxy, proxyServer, client
+}
+
+func buildWebsiteServer() *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "Got Through")
+	}))
+}
+
+func createExpectations(t *testing.T, server Server, json string) {
+	req := buildExpectationsRequest(t, json)
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("unexpected response code: %d", rec.Code)
+	}
+}
+
+func buildExpectationsRequest(t *testing.T, json string) *http.Request {
+	req, err := http.NewRequest("POST", "/expectations", strings.NewReader(json))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("unexpected response code (via proxy): %d", resp.StatusCode)
+	return req
+}
+
+func checkResponse(t *testing.T, resp *http.Response, status int, body string) {
+	if resp.StatusCode != status {
+		t.Errorf("unexpected response code: %d", status)
 	}
 
 	defer resp.Body.Close()
@@ -84,28 +115,8 @@ func TestMethodExpectation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	body := string(bytes)
-	if body != "Hello World" {
-		t.Errorf("unexpected response body: %s", body)
-	}
-
-	req, err = http.NewRequest("GET", websiteServer.URL, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	resp, err = client.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	bytes, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	body = string(bytes)
-	if body != "Got Through!" {
-		t.Errorf("unexpected response body: %s", body)
+	str := string(bytes)
+	if body != str {
+		t.Errorf("unexpected response body: %s", str)
 	}
 }
