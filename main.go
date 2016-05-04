@@ -52,6 +52,19 @@ type RespondWith struct {
 	BodyEncoding BodyEncoding      `json:"body_encoding"`
 }
 
+func main() {
+	proxy := goproxy.NewProxyHttpServer()
+
+	server := Server{Proxy: proxy}
+	http.Handle("/expectations", server)
+	go http.ListenAndServe(":4322", nil)
+
+	proxy.Verbose = true
+	proxy.OnRequest(goproxy.ReqHostMatches(regexp.MustCompile("^.*$"))).
+		HandleConnect(goproxy.AlwaysMitm)
+	log.Fatal(http.ListenAndServe(":4321", proxy))
+}
+
 /*
 
 POST /expectations
@@ -112,32 +125,21 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func main() {
-	proxy := goproxy.NewProxyHttpServer()
-
-	server := Server{Proxy: proxy}
-	http.Handle("/expectations", server)
-	go http.ListenAndServe(":4322", nil)
-
-	proxy.Verbose = true
-	proxy.OnRequest(goproxy.ReqHostMatches(regexp.MustCompile("^.*$"))).
-		HandleConnect(goproxy.AlwaysMitm)
-	log.Fatal(http.ListenAndServe(":4321", proxy))
-}
-
 func conditionsForExpectation(expectation Expectation) []goproxy.ReqCondition {
 	conditions := make([]goproxy.ReqCondition, len(expectation.RequestCriteria))
 
 	for idx, criteria := range expectation.RequestCriteria {
 		switch criteria.Type {
 		case CriteriaTypeMethod:
-			conditions[idx] = func(criteria Criteria) goproxy.ReqConditionFunc {
-				return func(r *http.Request, ctx *goproxy.ProxyCtx) bool {
-					return r.Method == criteria.Value
-				}
-			}(criteria)
+			conditions[idx] = ReqMethodMatches(criteria.Value)
 		}
 	}
 
 	return conditions
+}
+
+func ReqMethodMatches(method string) goproxy.ReqConditionFunc {
+	return func(r *http.Request, ctx *goproxy.ProxyCtx) bool {
+		return r.Method == method
+	}
 }
