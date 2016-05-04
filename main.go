@@ -85,19 +85,12 @@ TODO: How do we stop unmocked external requests?
 
 */
 
-var proxy = goproxy.NewProxyHttpServer()
-
-func main() {
-	http.HandleFunc("/expectations", serveRequest)
-	go http.ListenAndServe(":4322", nil)
-
-	proxy.Verbose = true
-	proxy.OnRequest(goproxy.ReqHostMatches(regexp.MustCompile("^.*$"))).
-		HandleConnect(goproxy.AlwaysMitm)
-	log.Fatal(http.ListenAndServe(":4321", proxy))
+type Server struct {
+	Proxy *goproxy.ProxyHttpServer
 }
 
-func serveRequest(w http.ResponseWriter, r *http.Request) {
+func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// TODO? Test this?
 	if r.Method != "POST" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		fmt.Fprint(w, "Are you drunk?")
@@ -113,10 +106,23 @@ func serveRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, expectation := range request.Expectations {
-		proxy.OnRequest(conditionsForExpectation(expectation)...).DoFunc(func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-			return nil, goproxy.NewResponse(r, "text/plain", http.StatusOK, "LOL HI")
+		s.Proxy.OnRequest(conditionsForExpectation(expectation)...).DoFunc(func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+			return nil, goproxy.NewResponse(r, "text/plain", expectation.RespondWith.Status, expectation.RespondWith.Body)
 		})
 	}
+}
+
+func main() {
+	proxy := goproxy.NewProxyHttpServer()
+
+	server := Server{Proxy: proxy}
+	http.Handle("/expectations", server)
+	go http.ListenAndServe(":4322", nil)
+
+	proxy.Verbose = true
+	proxy.OnRequest(goproxy.ReqHostMatches(regexp.MustCompile("^.*$"))).
+		HandleConnect(goproxy.AlwaysMitm)
+	log.Fatal(http.ListenAndServe(":4321", proxy))
 }
 
 func conditionsForExpectation(expectation Expectation) []goproxy.ReqCondition {
