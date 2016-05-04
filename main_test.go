@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -16,6 +17,11 @@ func TestMethodExpectation(t *testing.T) {
 
 	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
+
+	websiteServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "Got Through!")
+	}))
+	defer websiteServer.Close()
 
 	server := Server{Proxy: proxy}
 
@@ -49,7 +55,7 @@ func TestMethodExpectation(t *testing.T) {
 		t.Fatalf("unexpected response code: %d", rec.Code)
 	}
 
-	req, err = http.NewRequest("POST", "http://my-service.com/some-website", nil)
+	req, err = http.NewRequest("POST", websiteServer.URL, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,6 +86,26 @@ func TestMethodExpectation(t *testing.T) {
 
 	body := string(bytes)
 	if body != "Hello World" {
+		t.Errorf("unexpected response body: %s", body)
+	}
+
+	req, err = http.NewRequest("GET", websiteServer.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err = client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bytes, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	body = string(bytes)
+	if body != "Got Through!" {
 		t.Errorf("unexpected response body: %s", body)
 	}
 }
