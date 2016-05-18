@@ -27,8 +27,9 @@ type request struct {
 }
 
 type response struct {
-	status int
-	body   string
+	status  int
+	body    string
+	headers map[string]string
 }
 
 type scenario struct {
@@ -433,6 +434,43 @@ func TestMethodExpectation(t *testing.T) {
 				},
 			},
 		},
+
+		// Responding With Custom Headers
+		{
+			expectations: []Expectation{
+				{
+					[]Criteria{
+						{
+							Type:  CriteriaTypeMethod,
+							Value: "GET",
+						},
+					},
+
+					RespondWith{
+						Status: 418,
+						Body:   "Proxy Response",
+						Headers: map[string]string{
+							"X-Custom-Header": "Yup it got set",
+						},
+					},
+				},
+			},
+			scenarios: []scenario{
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL,
+					},
+					response{
+						status: 418,
+						body:   "Proxy Response",
+						headers: map[string]string{
+							"X-Custom-Header": "Yup it got set",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range testCases {
@@ -491,6 +529,14 @@ func runTestCase(t *testing.T, i int, tc testCase) {
 		body := string(bodyBytes)
 		if body != scenario.response.body {
 			t.Errorf("[%d - %d] unexpected response body, expected: %s, got: %s", i, idx, scenario.response.body, body)
+		}
+
+		for key, value := range scenario.response.headers {
+			got := resp.Header.Get(key)
+
+			if value != got {
+				t.Errorf("[%d - %d] unexpected value for header: %s, expected: %s, got: %s", i, idx, key, value, got)
+			}
 		}
 	}
 }

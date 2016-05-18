@@ -154,7 +154,6 @@ func headerIsExactly(key, value string) goproxy.ReqConditionFunc {
 
 func headerMatches(key string, re *regexp.Regexp) goproxy.ReqConditionFunc {
 	return func(r *http.Request, _ *goproxy.ProxyCtx) bool {
-		fmt.Println(re)
 		return re.MatchString(r.Header.Get(key))
 	}
 }
@@ -203,6 +202,19 @@ func bodyMatches(re *regexp.Regexp) goproxy.ReqConditionFunc {
 
 func proxyRespond(rw RespondWith) func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 	return func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-		return nil, goproxy.NewResponse(r, "text/plain", rw.Status, rw.Body)
+		resp := &http.Response{}
+		resp.Request = r
+		resp.TransferEncoding = r.TransferEncoding
+		resp.Header = make(http.Header)
+
+		for key, value := range rw.Headers {
+			resp.Header.Add(key, value)
+		}
+
+		resp.StatusCode = rw.Status
+		buf := bytes.NewBufferString(rw.Body)
+		resp.ContentLength = int64(buf.Len())
+		resp.Body = ioutil.NopCloser(buf)
+		return nil, resp
 	}
 }
