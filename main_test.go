@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -12,54 +14,126 @@ import (
 	"gopkg.in/elazarl/goproxy.v1"
 )
 
-func TestMethodExpectation(t *testing.T) {
-	proxy, proxyServer, proxyClient := buildProxy()
-	defer proxyServer.Close()
+type testCase struct {
+	expectations []Expectation
+	scenarios    []scenario
+}
 
+type request struct {
+	method string
+	url    string
+	body   string
+}
+
+type response struct {
+	status int
+	body   string
+}
+
+type scenario struct {
+	request  request
+	response response
+}
+
+func TestMethodExpectation(t *testing.T) {
 	websiteServer := buildWebsiteServer()
 	defer websiteServer.Close()
 
+	testCases := []testCase{
+		{
+			expectations: []Expectation{
+				{
+					[]Criteria{
+						{
+							Type:  CriteriaTypeMethod,
+							Value: "POST",
+						},
+					},
+
+					RespondWith{
+						Status: 418,
+						Body:   "Proxy Response",
+					},
+				},
+			},
+			scenarios: []scenario{
+				{
+					request{
+						method: "POST",
+						url:    websiteServer.URL,
+					},
+					response{
+						status: 418,
+						body:   "Proxy Response",
+					},
+				},
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL,
+					},
+					response{
+						status: 200,
+						body:   "Got Through",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		runTestCase(t, tc)
+	}
+}
+
+func runTestCase(t *testing.T, tc testCase) {
+	proxy, proxyServer, proxyClient := buildProxy()
+	defer proxyServer.Close()
+
 	server := Server{Proxy: proxy}
 
-	createExpectations(t, server,
-		`{
-			"expectations": [
-				{
-					"request_criteria": [
-						{
-							"type": "method",
-							"value": "POST"
-						}
-					],
+	cer := CreateExpectationsRequest{tc.expectations}
+	json, err := json.Marshal(cer)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-					"respond_with": {
-						"status": 418,
-						"body": "Proxy Response"
-					}
-				}
-			]
-		}`,
-	)
+	req, err := http.NewRequest("POST", "/expectations", bytes.NewReader(json))
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	for _, example := range []struct {
-		method string
-		status int
-		body   string
-	}{
-		{"POST", http.StatusTeapot, "Proxy Response"},
-		{"GET", http.StatusOK, "Got Through"},
-		{"PUT", http.StatusOK, "Got Through"},
-		{"DELETE", http.StatusOK, "Got Through"},
-	} {
-		req, err := http.NewRequest(example.method, websiteServer.URL, nil)
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("unexpected status code while setting up expectations: %d", rec.Code)
+	}
+
+	for idx, scenario := range tc.scenarios {
+		req, err = http.NewRequest(scenario.request.method, scenario.request.url, strings.NewReader(scenario.request.body))
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("[%d] error building request for scenario: %v", idx, err)
 		}
+
 		resp, err := proxyClient.Do(req)
 		if err != nil {
 			t.Fatal(err)
 		}
-		checkResponse(t, resp, example.status, example.body)
+
+		if resp.StatusCode != scenario.response.status {
+			t.Errorf("[%d] unexpected response status, expected: %d, got: %d", idx, scenario.response.status, resp.StatusCode)
+		}
+
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("[%d] error reading body: %v", idx, err)
+		}
+
+		body := string(bodyBytes)
+		if body != scenario.response.body {
+			t.Errorf("[%d] unexpected response body, expected: %s, got: %s", idx, scenario.response.body, body)
+		}
 	}
 }
 
@@ -82,41 +156,4 @@ func buildWebsiteServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Got Through")
 	}))
-}
-
-func createExpectations(t *testing.T, server Server, json string) {
-	req := buildExpectationsRequest(t, json)
-	rec := httptest.NewRecorder()
-	server.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("unexpected response code: %d", rec.Code)
-	}
-}
-
-func buildExpectationsRequest(t *testing.T, json string) *http.Request {
-	req, err := http.NewRequest("POST", "/expectations", strings.NewReader(json))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return req
-}
-
-func checkResponse(t *testing.T, resp *http.Response, status int, body string) {
-	if resp.StatusCode != status {
-		t.Errorf("unexpected response code: %d", status)
-	}
-
-	defer resp.Body.Close()
-
-	bytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	str := string(bytes)
-	if body != str {
-		t.Errorf("unexpected response body: %s", str)
-	}
 }
