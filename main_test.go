@@ -20,9 +20,10 @@ type testCase struct {
 }
 
 type request struct {
-	method string
-	url    string
-	body   string
+	method  string
+	url     string
+	body    string
+	headers map[string]string
 }
 
 type response struct {
@@ -40,6 +41,7 @@ func TestMethodExpectation(t *testing.T) {
 	defer websiteServer.Close()
 
 	testCases := []testCase{
+		// Method Matcher
 		{
 			expectations: []Expectation{
 				{
@@ -79,6 +81,8 @@ func TestMethodExpectation(t *testing.T) {
 				},
 			},
 		},
+
+		// Host Matcher
 		{
 			expectations: []Expectation{
 				{
@@ -110,6 +114,96 @@ func TestMethodExpectation(t *testing.T) {
 					request{
 						method: "GET",
 						url:    websiteServer.URL,
+					},
+					response{
+						status: 200,
+						body:   "Got Through",
+					},
+				},
+			},
+		},
+
+		// Path Matcher
+		{
+			expectations: []Expectation{
+				{
+					[]Criteria{
+						{
+							Type:  CriteriaTypePath,
+							Value: "/foo/bar",
+						},
+					},
+
+					RespondWith{
+						Status: 418,
+						Body:   "Proxy Response",
+					},
+				},
+			},
+			scenarios: []scenario{
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL + "/foo/bar",
+					},
+					response{
+						status: 418,
+						body:   "Proxy Response",
+					},
+				},
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL + "/lol",
+					},
+					response{
+						status: 200,
+						body:   "Got Through",
+					},
+				},
+			},
+		},
+
+		// Header Matcher
+		{
+			expectations: []Expectation{
+				{
+					[]Criteria{
+						{
+							Type:  CriteriaTypeHeader,
+							Key:   "Authorization",
+							Value: "Bearer mytoken",
+						},
+					},
+
+					RespondWith{
+						Status: 418,
+						Body:   "Proxy Response",
+					},
+				},
+			},
+			scenarios: []scenario{
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL,
+						headers: map[string]string{
+							"Authorization":    "Bearer mytoken",
+							"X-Something-Else": "something else",
+						},
+					},
+					response{
+						status: 418,
+						body:   "Proxy Response",
+					},
+				},
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL,
+						headers: map[string]string{
+							"Authorization": "something else",
+						},
 					},
 					response{
 						status: 200,
@@ -153,6 +247,10 @@ func runTestCase(t *testing.T, tc testCase) {
 		req, err = http.NewRequest(scenario.request.method, scenario.request.url, strings.NewReader(scenario.request.body))
 		if err != nil {
 			t.Fatalf("[%d] error building request for scenario: %v", idx, err)
+		}
+
+		for key, value := range scenario.request.headers {
+			req.Header.Add(key, value)
 		}
 
 		resp, err := proxyClient.Do(req)

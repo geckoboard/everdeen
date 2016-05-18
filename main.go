@@ -24,6 +24,8 @@ type CriteriaType string
 const (
 	CriteriaTypeMethod CriteriaType = "method"
 	CriteriaTypeHost   CriteriaType = "host"
+	CriteriaTypePath   CriteriaType = "path"
+	CriteriaTypeHeader CriteriaType = "header"
 )
 
 type MatchType string
@@ -136,15 +138,31 @@ func conditionsForExpectation(expectation Expectation) []goproxy.ReqCondition {
 			conditions = append(conditions, reqMethodMatches(criteria.Value))
 		case CriteriaTypeHost:
 			conditions = append(conditions, goproxy.ReqHostIs(criteria.Value))
+		case CriteriaTypePath:
+			conditions = append(conditions, pathMatches(criteria.Value))
+		case CriteriaTypeHeader:
+			conditions = append(conditions, headerMatches(criteria.Key, criteria.Value))
 		}
 	}
 
 	return conditions
 }
 
+func headerMatches(key, value string) goproxy.ReqConditionFunc {
+	return func(r *http.Request, _ *goproxy.ProxyCtx) bool {
+		return r.Header.Get(key) == value
+	}
+}
+
 func reqMethodMatches(method string) goproxy.ReqConditionFunc {
-	return func(r *http.Request, ctx *goproxy.ProxyCtx) bool {
+	return func(r *http.Request, _ *goproxy.ProxyCtx) bool {
 		return r.Method == method
+	}
+}
+
+func pathMatches(path string) goproxy.ReqConditionFunc {
+	return func(r *http.Request, _ *goproxy.ProxyCtx) bool {
+		return r.URL.Path == path
 	}
 }
 
