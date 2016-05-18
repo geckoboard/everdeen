@@ -471,6 +471,38 @@ func TestMethodExpectation(t *testing.T) {
 				},
 			},
 		},
+
+		// Responding With Binary Body (Base64 Encoded)
+		{
+			expectations: []Expectation{
+				{
+					[]Criteria{
+						{
+							Type:  CriteriaTypeMethod,
+							Value: "GET",
+						},
+					},
+
+					RespondWith{
+						Status:       418,
+						Body:         "SGVsbG8gV29ybGQ=",
+						BodyEncoding: BodyEncodingBase64,
+					},
+				},
+			},
+			scenarios: []scenario{
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL,
+					},
+					response{
+						status: 418,
+						body:   "Hello World",
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range testCases {

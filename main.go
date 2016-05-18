@@ -2,12 +2,15 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"gopkg.in/elazarl/goproxy.v1"
 )
@@ -212,9 +215,27 @@ func proxyRespond(rw RespondWith) func(r *http.Request, ctx *goproxy.ProxyCtx) (
 		}
 
 		resp.StatusCode = rw.Status
-		buf := bytes.NewBufferString(rw.Body)
-		resp.ContentLength = int64(buf.Len())
-		resp.Body = ioutil.NopCloser(buf)
+
+		var bodyReader io.Reader
+
+		if rw.BodyEncoding == BodyEncodingBase64 {
+			bodyBytes, err := base64.StdEncoding.DecodeString(rw.Body)
+
+			if err == nil {
+				bodyReader = bytes.NewReader(bodyBytes)
+			} else {
+				resp.StatusCode = http.StatusInternalServerError
+				bodyReader = strings.NewReader("everdeen: error decoding base64 encoded body")
+			}
+
+			resp.ContentLength = int64(len(bodyBytes))
+		} else {
+			buf := bytes.NewBufferString(rw.Body)
+			resp.ContentLength = int64(buf.Len())
+			bodyReader = buf
+		}
+
+		resp.Body = ioutil.NopCloser(bodyReader)
 		return nil, resp
 	}
 }
