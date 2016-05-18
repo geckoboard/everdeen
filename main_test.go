@@ -79,6 +79,45 @@ func TestMethodExpectation(t *testing.T) {
 				},
 			},
 		},
+		{
+			expectations: []Expectation{
+				{
+					[]Criteria{
+						{
+							Type:  CriteriaTypeHost,
+							Value: "google.com",
+						},
+					},
+
+					RespondWith{
+						Status: 418,
+						Body:   "Proxy Response",
+					},
+				},
+			},
+			scenarios: []scenario{
+				{
+					request{
+						method: "GET",
+						url:    "http://google.com",
+					},
+					response{
+						status: 418,
+						body:   "Proxy Response",
+					},
+				},
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL,
+					},
+					response{
+						status: 200,
+						body:   "Got Through",
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {

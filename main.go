@@ -23,6 +23,7 @@ type CriteriaType string
 
 const (
 	CriteriaTypeMethod CriteriaType = "method"
+	CriteriaTypeHost   CriteriaType = "host"
 )
 
 type MatchType string
@@ -119,18 +120,22 @@ func (s Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, expectation := range request.Expectations {
-		s.Proxy.OnRequest(conditionsForExpectation(expectation)...).
+		conditions := conditionsForExpectation(expectation)
+
+		s.Proxy.OnRequest(conditions...).
 			DoFunc(proxyRespond(expectation.RespondWith))
 	}
 }
 
 func conditionsForExpectation(expectation Expectation) []goproxy.ReqCondition {
-	conditions := make([]goproxy.ReqCondition, len(expectation.RequestCriteria))
+	conditions := []goproxy.ReqCondition{}
 
-	for idx, criteria := range expectation.RequestCriteria {
+	for _, criteria := range expectation.RequestCriteria {
 		switch criteria.Type {
 		case CriteriaTypeMethod:
-			conditions[idx] = reqMethodMatches(criteria.Value)
+			conditions = append(conditions, reqMethodMatches(criteria.Value))
+		case CriteriaTypeHost:
+			conditions = append(conditions, goproxy.ReqHostIs(criteria.Value))
 		}
 	}
 
