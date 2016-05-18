@@ -22,6 +22,7 @@ type CreateExpectationsRequest struct {
 type Expectation struct {
 	RequestCriteria []Criteria  `json:"request_criteria"`
 	RespondWith     RespondWith `json:"respond_with"`
+	MaxMatches      int         `json:"max_matches"`
 }
 
 type CriteriaType string
@@ -146,6 +147,10 @@ func conditionsForExpectation(expectation Expectation) []goproxy.ReqCondition {
 		}
 	}
 
+	if expectation.MaxMatches != 0 {
+		conditions = append(conditions, maxMatches(expectation.MaxMatches))
+	}
+
 	return conditions
 }
 
@@ -200,6 +205,15 @@ func bodyMatches(re *regexp.Regexp) goproxy.ReqConditionFunc {
 		r.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
 
 		return re.MatchString(string(bodyBytes))
+	}
+}
+
+func maxMatches(max int) goproxy.ReqConditionFunc {
+	invocations := 0
+
+	return func(r *http.Request, _ *goproxy.ProxyCtx) bool {
+		invocations += 1
+		return invocations <= max
 	}
 }
 

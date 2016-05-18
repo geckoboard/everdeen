@@ -46,14 +46,14 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					[]Criteria{
+					RequestCriteria: []Criteria{
 						{
 							Type:  CriteriaTypeMethod,
 							Value: "POST",
 						},
 					},
 
-					RespondWith{
+					RespondWith: RespondWith{
 						Status: 418,
 						Body:   "Proxy Response",
 					},
@@ -87,14 +87,14 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					[]Criteria{
+					RequestCriteria: []Criteria{
 						{
 							Type:  CriteriaTypeHost,
 							Value: "google.com",
 						},
 					},
 
-					RespondWith{
+					RespondWith: RespondWith{
 						Status: 418,
 						Body:   "Proxy Response",
 					},
@@ -128,7 +128,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					[]Criteria{
+					RequestCriteria: []Criteria{
 						{
 							Type:      CriteriaTypeHost,
 							MatchType: MatchTypeRegex,
@@ -136,7 +136,7 @@ func TestMethodExpectation(t *testing.T) {
 						},
 					},
 
-					RespondWith{
+					RespondWith: RespondWith{
 						Status: 418,
 						Body:   "Proxy Response",
 					},
@@ -170,14 +170,14 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					[]Criteria{
+					RequestCriteria: []Criteria{
 						{
 							Type:  CriteriaTypePath,
 							Value: "/foo/bar",
 						},
 					},
 
-					RespondWith{
+					RespondWith: RespondWith{
 						Status: 418,
 						Body:   "Proxy Response",
 					},
@@ -211,7 +211,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					[]Criteria{
+					RequestCriteria: []Criteria{
 						{
 							Type:      CriteriaTypePath,
 							MatchType: MatchTypeRegex,
@@ -219,7 +219,7 @@ func TestMethodExpectation(t *testing.T) {
 						},
 					},
 
-					RespondWith{
+					RespondWith: RespondWith{
 						Status: 418,
 						Body:   "Proxy Response",
 					},
@@ -253,7 +253,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					[]Criteria{
+					RequestCriteria: []Criteria{
 						{
 							Type:  CriteriaTypeHeader,
 							Key:   "Authorization",
@@ -261,7 +261,7 @@ func TestMethodExpectation(t *testing.T) {
 						},
 					},
 
-					RespondWith{
+					RespondWith: RespondWith{
 						Status: 418,
 						Body:   "Proxy Response",
 					},
@@ -302,7 +302,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					[]Criteria{
+					RequestCriteria: []Criteria{
 						{
 							Type:      CriteriaTypeHeader,
 							Key:       "Authorization",
@@ -311,7 +311,7 @@ func TestMethodExpectation(t *testing.T) {
 						},
 					},
 
-					RespondWith{
+					RespondWith: RespondWith{
 						Status: 418,
 						Body:   "Proxy Response",
 					},
@@ -352,14 +352,14 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					[]Criteria{
+					RequestCriteria: []Criteria{
 						{
 							Type:  CriteriaTypeBody,
 							Value: "foo=bar",
 						},
 					},
 
-					RespondWith{
+					RespondWith: RespondWith{
 						Status: 418,
 						Body:   "Proxy Response",
 					},
@@ -395,7 +395,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					[]Criteria{
+					RequestCriteria: []Criteria{
 						{
 							Type:      CriteriaTypeBody,
 							Value:     "foo=(bar|baz)",
@@ -403,7 +403,7 @@ func TestMethodExpectation(t *testing.T) {
 						},
 					},
 
-					RespondWith{
+					RespondWith: RespondWith{
 						Status: 418,
 						Body:   "Proxy Response",
 					},
@@ -439,14 +439,14 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					[]Criteria{
+					RequestCriteria: []Criteria{
 						{
 							Type:  CriteriaTypeMethod,
 							Value: "GET",
 						},
 					},
 
-					RespondWith{
+					RespondWith: RespondWith{
 						Status: 418,
 						Body:   "Proxy Response",
 						Headers: map[string]string{
@@ -476,14 +476,14 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					[]Criteria{
+					RequestCriteria: []Criteria{
 						{
 							Type:  CriteriaTypeMethod,
 							Value: "GET",
 						},
 					},
 
-					RespondWith{
+					RespondWith: RespondWith{
 						Status:       418,
 						Body:         "SGVsbG8gV29ybGQ=",
 						BodyEncoding: BodyEncodingBase64,
@@ -499,6 +499,59 @@ func TestMethodExpectation(t *testing.T) {
 					response{
 						status: 418,
 						body:   "Hello World",
+					},
+				},
+			},
+		},
+
+		// Max Matches
+		{
+			expectations: []Expectation{
+				{
+					RequestCriteria: []Criteria{
+						{
+							Type:  CriteriaTypeMethod,
+							Value: "GET",
+						},
+					},
+
+					RespondWith: RespondWith{
+						Status: 418,
+						Body:   "Proxy Response",
+					},
+
+					MaxMatches: 2,
+				},
+			},
+			scenarios: []scenario{
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL,
+					},
+					response{
+						status: 418,
+						body:   "Proxy Response",
+					},
+				},
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL,
+					},
+					response{
+						status: 418,
+						body:   "Proxy Response",
+					},
+				},
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL,
+					},
+					response{
+						status: 200,
+						body:   "Got Through",
 					},
 				},
 			},
