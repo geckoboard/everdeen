@@ -118,7 +118,7 @@ func conditionsForExpectation(expectation Expectation) []goproxy.ReqCondition {
 			case CriteriaTypePath:
 				conditions = append(conditions, pathIsExactly(criteria.Value))
 			case CriteriaTypeHeader:
-				conditions = append(conditions, headerMatches(criteria.Key, criteria.Value))
+				conditions = append(conditions, headerIsExactly(criteria.Key, criteria.Value))
 			case CriteriaTypeBody:
 				conditions = append(conditions, bodyMatches(criteria.Value))
 			}
@@ -135,6 +135,8 @@ func conditionsForExpectation(expectation Expectation) []goproxy.ReqCondition {
 				conditions = append(conditions, goproxy.ReqHostMatches(re))
 			case CriteriaTypePath:
 				conditions = append(conditions, pathMatches(re))
+			case CriteriaTypeHeader:
+				conditions = append(conditions, headerMatches(criteria.Key, re))
 			}
 		}
 	}
@@ -142,9 +144,16 @@ func conditionsForExpectation(expectation Expectation) []goproxy.ReqCondition {
 	return conditions
 }
 
-func headerMatches(key, value string) goproxy.ReqConditionFunc {
+func headerIsExactly(key, value string) goproxy.ReqConditionFunc {
 	return func(r *http.Request, _ *goproxy.ProxyCtx) bool {
 		return r.Header.Get(key) == value
+	}
+}
+
+func headerMatches(key string, re *regexp.Regexp) goproxy.ReqConditionFunc {
+	return func(r *http.Request, _ *goproxy.ProxyCtx) bool {
+		fmt.Println(re)
+		return re.MatchString(r.Header.Get(key))
 	}
 }
 

@@ -248,7 +248,7 @@ func TestMethodExpectation(t *testing.T) {
 			},
 		},
 
-		// Header Matcher
+		// Header Matcher (Exact)
 		{
 			expectations: []Expectation{
 				{
@@ -273,6 +273,56 @@ func TestMethodExpectation(t *testing.T) {
 						url:    websiteServer.URL,
 						headers: map[string]string{
 							"Authorization":    "Bearer mytoken",
+							"X-Something-Else": "something else",
+						},
+					},
+					response{
+						status: 418,
+						body:   "Proxy Response",
+					},
+				},
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL,
+						headers: map[string]string{
+							"Authorization": "something else",
+						},
+					},
+					response{
+						status: 200,
+						body:   "Got Through",
+					},
+				},
+			},
+		},
+
+		// Header Matcher (Regex)
+		{
+			expectations: []Expectation{
+				{
+					[]Criteria{
+						{
+							Type:      CriteriaTypeHeader,
+							Key:       "Authorization",
+							MatchType: MatchTypeRegex,
+							Value:     `Bearer ([a-z\d]+)`,
+						},
+					},
+
+					RespondWith{
+						Status: 418,
+						Body:   "Proxy Response",
+					},
+				},
+			},
+			scenarios: []scenario{
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL,
+						headers: map[string]string{
+							"Authorization":    "Bearer abc123",
 							"X-Something-Else": "something else",
 						},
 					},
