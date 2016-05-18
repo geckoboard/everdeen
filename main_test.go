@@ -165,7 +165,7 @@ func TestMethodExpectation(t *testing.T) {
 			},
 		},
 
-		// Path Matcher
+		// Path Matcher (Exact)
 		{
 			expectations: []Expectation{
 				{
@@ -187,6 +187,48 @@ func TestMethodExpectation(t *testing.T) {
 					request{
 						method: "GET",
 						url:    websiteServer.URL + "/foo/bar",
+					},
+					response{
+						status: 418,
+						body:   "Proxy Response",
+					},
+				},
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL + "/lol",
+					},
+					response{
+						status: 200,
+						body:   "Got Through",
+					},
+				},
+			},
+		},
+
+		// Path Matcher (Regex)
+		{
+			expectations: []Expectation{
+				{
+					[]Criteria{
+						{
+							Type:      CriteriaTypePath,
+							MatchType: MatchTypeRegex,
+							Value:     `/contacts/(\d+)`,
+						},
+					},
+
+					RespondWith{
+						Status: 418,
+						Body:   "Proxy Response",
+					},
+				},
+			},
+			scenarios: []scenario{
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL + "/contacts/1",
 					},
 					response{
 						status: 418,
