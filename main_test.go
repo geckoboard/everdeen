@@ -347,7 +347,7 @@ func TestMethodExpectation(t *testing.T) {
 			},
 		},
 
-		// Body Matcher
+		// Body Matcher (Exact)
 		{
 			expectations: []Expectation{
 				{
@@ -355,6 +355,50 @@ func TestMethodExpectation(t *testing.T) {
 						{
 							Type:  CriteriaTypeBody,
 							Value: "foo=bar",
+						},
+					},
+
+					RespondWith{
+						Status: 418,
+						Body:   "Proxy Response",
+					},
+				},
+			},
+			scenarios: []scenario{
+				{
+					request{
+						method: "POST",
+						url:    websiteServer.URL,
+						body:   "foo=bar",
+					},
+					response{
+						status: 418,
+						body:   "Proxy Response",
+					},
+				},
+				{
+					request{
+						method: "POST",
+						url:    websiteServer.URL,
+						body:   "foo=something-else",
+					},
+					response{
+						status: 200,
+						body:   "Got Through",
+					},
+				},
+			},
+		},
+
+		// Body Matcher (Regex)
+		{
+			expectations: []Expectation{
+				{
+					[]Criteria{
+						{
+							Type:      CriteriaTypeBody,
+							Value:     "foo=(bar|baz)",
+							MatchType: MatchTypeRegex,
 						},
 					},
 

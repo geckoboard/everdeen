@@ -120,7 +120,7 @@ func conditionsForExpectation(expectation Expectation) []goproxy.ReqCondition {
 			case CriteriaTypeHeader:
 				conditions = append(conditions, headerIsExactly(criteria.Key, criteria.Value))
 			case CriteriaTypeBody:
-				conditions = append(conditions, bodyMatches(criteria.Value))
+				conditions = append(conditions, bodyIsExactly(criteria.Value))
 			}
 
 		case MatchTypeRegex:
@@ -137,6 +137,8 @@ func conditionsForExpectation(expectation Expectation) []goproxy.ReqCondition {
 				conditions = append(conditions, pathMatches(re))
 			case CriteriaTypeHeader:
 				conditions = append(conditions, headerMatches(criteria.Key, re))
+			case CriteriaTypeBody:
+				conditions = append(conditions, bodyMatches(re))
 			}
 		}
 	}
@@ -175,7 +177,7 @@ func pathMatches(re *regexp.Regexp) goproxy.ReqConditionFunc {
 	}
 }
 
-func bodyMatches(body string) goproxy.ReqConditionFunc {
+func bodyIsExactly(body string) goproxy.ReqConditionFunc {
 	return func(r *http.Request, _ *goproxy.ProxyCtx) bool {
 		bodyBytes, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -184,6 +186,18 @@ func bodyMatches(body string) goproxy.ReqConditionFunc {
 		r.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
 
 		return string(bodyBytes) == body
+	}
+}
+
+func bodyMatches(re *regexp.Regexp) goproxy.ReqConditionFunc {
+	return func(r *http.Request, _ *goproxy.ProxyCtx) bool {
+		bodyBytes, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			return false
+		}
+		r.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+
+		return re.MatchString(string(bodyBytes))
 	}
 }
 
