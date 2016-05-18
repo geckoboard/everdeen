@@ -212,6 +212,49 @@ func TestMethodExpectation(t *testing.T) {
 				},
 			},
 		},
+
+		// Body Matcher
+		{
+			expectations: []Expectation{
+				{
+					[]Criteria{
+						{
+							Type:  CriteriaTypeBody,
+							Value: "foo=bar",
+						},
+					},
+
+					RespondWith{
+						Status: 418,
+						Body:   "Proxy Response",
+					},
+				},
+			},
+			scenarios: []scenario{
+				{
+					request{
+						method: "POST",
+						url:    websiteServer.URL,
+						body:   "foo=bar",
+					},
+					response{
+						status: 418,
+						body:   "Proxy Response",
+					},
+				},
+				{
+					request{
+						method: "POST",
+						url:    websiteServer.URL,
+						body:   "foo=something-else",
+					},
+					response{
+						status: 200,
+						body:   "Got Through",
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {

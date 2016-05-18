@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
@@ -26,6 +28,7 @@ const (
 	CriteriaTypeHost   CriteriaType = "host"
 	CriteriaTypePath   CriteriaType = "path"
 	CriteriaTypeHeader CriteriaType = "header"
+	CriteriaTypeBody   CriteriaType = "body"
 )
 
 type MatchType string
@@ -142,6 +145,8 @@ func conditionsForExpectation(expectation Expectation) []goproxy.ReqCondition {
 			conditions = append(conditions, pathMatches(criteria.Value))
 		case CriteriaTypeHeader:
 			conditions = append(conditions, headerMatches(criteria.Key, criteria.Value))
+		case CriteriaTypeBody:
+			conditions = append(conditions, bodyMatches(criteria.Value))
 		}
 	}
 
@@ -163,6 +168,18 @@ func reqMethodMatches(method string) goproxy.ReqConditionFunc {
 func pathMatches(path string) goproxy.ReqConditionFunc {
 	return func(r *http.Request, _ *goproxy.ProxyCtx) bool {
 		return r.URL.Path == path
+	}
+}
+
+func bodyMatches(body string) goproxy.ReqConditionFunc {
+	return func(r *http.Request, _ *goproxy.ProxyCtx) bool {
+		bodyBytes, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			return false
+		}
+		r.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+
+		return string(bodyBytes) == body
 	}
 }
 
