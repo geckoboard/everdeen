@@ -41,7 +41,7 @@ func TestMethodExpectation(t *testing.T) {
 	defer websiteServer.Close()
 
 	testCases := []testCase{
-		// Method Matcher
+		// Method Matcher (Exact)
 		{
 			expectations: []Expectation{
 				{
@@ -104,6 +104,48 @@ func TestMethodExpectation(t *testing.T) {
 					request{
 						method: "GET",
 						url:    "http://google.com",
+					},
+					response{
+						status: 418,
+						body:   "Proxy Response",
+					},
+				},
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL,
+					},
+					response{
+						status: 200,
+						body:   "Got Through",
+					},
+				},
+			},
+		},
+
+		// Host Matcher (Regex)
+		{
+			expectations: []Expectation{
+				{
+					[]Criteria{
+						{
+							Type:      CriteriaTypeHost,
+							MatchType: MatchTypeRegex,
+							Value:     `.*\.google\.com`,
+						},
+					},
+
+					RespondWith{
+						Status: 418,
+						Body:   "Proxy Response",
+					},
+				},
+			},
+			scenarios: []scenario{
+				{
+					request{
+						method: "GET",
+						url:    "http://images.google.com",
 					},
 					response{
 						status: 418,
@@ -257,12 +299,12 @@ func TestMethodExpectation(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
-		runTestCase(t, tc)
+	for i, tc := range testCases {
+		runTestCase(t, i, tc)
 	}
 }
 
-func runTestCase(t *testing.T, tc testCase) {
+func runTestCase(t *testing.T, i int, tc testCase) {
 	proxy, proxyServer, proxyClient := buildProxy()
 	defer proxyServer.Close()
 
@@ -283,13 +325,13 @@ func runTestCase(t *testing.T, tc testCase) {
 	server.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
-		t.Fatalf("unexpected status code while setting up expectations: %d", rec.Code)
+		t.Fatalf("[%d] unexpected status code while setting up expectations: %d", i, rec.Code)
 	}
 
 	for idx, scenario := range tc.scenarios {
 		req, err = http.NewRequest(scenario.request.method, scenario.request.url, strings.NewReader(scenario.request.body))
 		if err != nil {
-			t.Fatalf("[%d] error building request for scenario: %v", idx, err)
+			t.Fatalf("[%d - %d] error building request for scenario: %v", i, idx, err)
 		}
 
 		for key, value := range scenario.request.headers {
@@ -302,17 +344,17 @@ func runTestCase(t *testing.T, tc testCase) {
 		}
 
 		if resp.StatusCode != scenario.response.status {
-			t.Errorf("[%d] unexpected response status, expected: %d, got: %d", idx, scenario.response.status, resp.StatusCode)
+			t.Errorf("[%d - %d] unexpected response status, expected: %d, got: %d", i, idx, scenario.response.status, resp.StatusCode)
 		}
 
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			t.Fatalf("[%d] error reading body: %v", idx, err)
+			t.Fatalf("[%d - %d] error reading body: %v", idx, err)
 		}
 
 		body := string(bodyBytes)
 		if body != scenario.response.body {
-			t.Errorf("[%d] unexpected response body, expected: %s, got: %s", idx, scenario.response.body, body)
+			t.Errorf("[%d - %d] unexpected response body, expected: %s, got: %s", i, idx, scenario.response.body, body)
 		}
 	}
 }

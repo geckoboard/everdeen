@@ -35,6 +35,7 @@ type MatchType string
 
 const (
 	MatchTypeExact MatchType = "exact"
+	MatchTypeRegex MatchType = "regex"
 )
 
 type BodyEncoding string
@@ -103,17 +104,36 @@ func conditionsForExpectation(expectation Expectation) []goproxy.ReqCondition {
 	conditions := []goproxy.ReqCondition{}
 
 	for _, criteria := range expectation.RequestCriteria {
-		switch criteria.Type {
-		case CriteriaTypeMethod:
-			conditions = append(conditions, reqMethodMatches(criteria.Value))
-		case CriteriaTypeHost:
-			conditions = append(conditions, goproxy.ReqHostIs(criteria.Value))
-		case CriteriaTypePath:
-			conditions = append(conditions, pathMatches(criteria.Value))
-		case CriteriaTypeHeader:
-			conditions = append(conditions, headerMatches(criteria.Key, criteria.Value))
-		case CriteriaTypeBody:
-			conditions = append(conditions, bodyMatches(criteria.Value))
+		if criteria.MatchType == "" {
+			criteria.MatchType = MatchTypeExact
+		}
+
+		switch criteria.MatchType {
+		case MatchTypeExact:
+			switch criteria.Type {
+			case CriteriaTypeMethod:
+				conditions = append(conditions, reqMethodMatches(criteria.Value))
+			case CriteriaTypeHost:
+				conditions = append(conditions, goproxy.ReqHostIs(criteria.Value))
+			case CriteriaTypePath:
+				conditions = append(conditions, pathMatches(criteria.Value))
+			case CriteriaTypeHeader:
+				conditions = append(conditions, headerMatches(criteria.Key, criteria.Value))
+			case CriteriaTypeBody:
+				conditions = append(conditions, bodyMatches(criteria.Value))
+			}
+
+		case MatchTypeRegex:
+			re, err := regexp.Compile(criteria.Value)
+			if err != nil {
+				// TODO: Bubble the error up to the HTTP handler
+				continue
+			}
+
+			switch criteria.Type {
+			case CriteriaTypeHost:
+				conditions = append(conditions, goproxy.ReqHostMatches(re))
+			}
 		}
 	}
 
