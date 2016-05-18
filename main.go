@@ -71,39 +71,6 @@ func main() {
 	log.Fatal(http.ListenAndServe(":4321", proxy))
 }
 
-/*
-
-POST /expectations
-
-TODO: Query String?
-TODO: Times
-TODO: How do we stop unmocked external requests?
-
-{
-	"expectations": [
-		{
-			"request_criteria": [
-				{ "type": "method", "match_type": "exact", "value": "GET" },
-				{ "type": "header", "key": "Host", "match_type": "regexp", "value": "^geckoboard$" },
-				{ "type": "header", "key": "User-Agent", "match_type": "regexp", "value": "Chrome" },
-				{ "type": "body", "match_type": "regexp", "value": "^geckoboard$" },
-				{ "type": "url", "match_type": "regexp", "value": "^geckoboard$" }
-			],
-
-			"respond_with": {
-				"status": 200,
-				"headers": {
-					"X-Request-Id": "abc123"
-				},
-				"body": "abc123",
-				"body_encoding": "base64"
-			}
-		}
-	]
-}
-
-*/
-
 type Server struct {
 	Proxy *goproxy.ProxyHttpServer
 }
