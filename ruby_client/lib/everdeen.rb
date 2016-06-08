@@ -1,5 +1,2 @@
-require "everdeen/version"
-
-module Everdeen
-  # Your code goes here...
-end
+require 'everdeen/version'
+require 'everdeen/criterion'
