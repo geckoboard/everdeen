@@ -23,25 +23,38 @@ type Server struct {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// TODO? Test this?
 	if r.Method != "POST" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		fmt.Fprint(w, "Are you drunk?")
 		return
 	}
 
 	var request CreateExpectationsRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "Something went boom!")
+		fmt.Fprintf(w, "Error parsing request payload: %s", err)
+		log.Printf("ERROR: %v", err)
+		return
+	}
+
+	expectations, err := prepareExpectations(request)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Error adding expectations: %s", err)
 		log.Printf("ERROR: %v", err)
 		return
 	}
 
 	s.mutex.Lock()
+	for _, expectation := range expectations {
+		s.expectations = append(s.expectations, expectation)
+	}
+	s.mutex.Unlock()
+}
+
+func prepareExpectations(request CreateExpectationsRequest) ([]*Expectation, error) {
+	expectations := []*Expectation{}
+
 	for _, e := range request.Expectations {
-		// TODO: Move this somewhere else?
-		// Precompile Regexps
 		for _, criterion := range e.RequestCriteria {
 			if criterion.MatchType == "" {
 				criterion.MatchType = MatchTypeExact
@@ -51,14 +64,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				var err error
 				criterion.regexp, err = regexp.Compile(criterion.Value)
 
-				// TODO: Handle this error properly
 				if err != nil {
-					panic(err)
+					return nil, err
 				}
 			}
 		}
 
-		s.expectations = append(s.expectations, &e)
+		expectations = append(expectations, &e)
 	}
-	s.mutex.Unlock()
+
+	return expectations, nil
 }
