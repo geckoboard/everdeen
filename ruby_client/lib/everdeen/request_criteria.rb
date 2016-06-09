@@ -1,7 +1,7 @@
 module Everdeen
   class RequestCriteria
     def initialize(criterion)
-      criterion.each do |criterion_attr|
+      Array(criterion).each do |criterion_attr|
         add_criterion(criterion_attr)
       end
     end
@@ -10,12 +10,14 @@ module Everdeen
       @criteria ||= []
     end
 
-    def add_criterion(criterion_attrs)
-      criteria << Criterion.new(criterion_attrs)
-    end
-
     def to_hash
       criteria.map(&:to_hash)
+    end
+
+    private
+
+    def add_criterion(criterion_attrs)
+      criteria << Criterion.new(criterion_attrs)
     end
   end
 end

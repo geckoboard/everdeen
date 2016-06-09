@@ -15,6 +15,10 @@ RSpec.describe 'Response', type: :unit do
       expect(subject.body).to eq 'SGVsbG8gV29ybGQK'
       expect(subject.body_encoding).to eq 'base64'
     end
+
+    it 'doesnt raise error when nil passed' do
+      expect{ Everdeen::Response.new(nil) }.not_to raise_error
+    end
   end
 
   describe '#body_encoding' do

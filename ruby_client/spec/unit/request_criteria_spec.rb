@@ -12,6 +12,11 @@ RSpec.describe 'RequestCriteria', type: :unit do
     it 'creates multiple criterion' do
       expect(subject.criteria.size).to eq 2
     end
+
+    it 'doesnt raise an error with nil passed' do
+      expect{ Everdeen::RequestCriteria.new(nil) }.not_to raise_error
+      expect(Everdeen::RequestCriteria.new(nil).to_hash).to eq []
+    end
   end
 
   describe '#criteria' do

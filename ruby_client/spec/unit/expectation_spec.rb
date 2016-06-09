@@ -28,21 +28,6 @@ RSpec.describe 'Expectation', type: :unit do
       expect(subject.response.to_hash).to eq expected_response
       expect(subject.request_criteria.to_hash).to eq expected_request
     end
-
-
-    describe 'with missing keys' do
-      subject {}
-
-      it "doesn't call add_response when no response key exists" do
-        subject = Everdeen::Expectation.new(request_criteria: [])
-        expect(subject).not_to receive(:add_response)
-      end
-
-      it "doesn't call add_request when no request_criteria key exists" do
-        subject = Everdeen::Expectation.new(response: {})
-        expect(subject).not_to receive(:add_request)
-      end
-    end
   end
 
   describe '#pass_through' do
@@ -59,12 +44,12 @@ RSpec.describe 'Expectation', type: :unit do
 
   describe '#add_response' do
     let(:response_hash) {{status: 200, body: 'Hello World' }}
-    let(:response) { subject.add_response(response_hash) }
+    subject { Everdeen::Expectation.new(response: response_hash).response }
 
     it 'creates a new response object' do
-      expect(response.class).to eq Everdeen::Response
-      expect(response.status).to eq 200
-      expect(response.body).to eq 'Hello World'
+      expect(subject.class).to eq Everdeen::Response
+      expect(subject.status).to eq 200
+      expect(subject.body).to eq 'Hello World'
     end
   end
 

@@ -3,7 +3,7 @@ module Everdeen
     attr_reader :status, :headers, :body
 
     def initialize(args = {})
-      args.each do |key, value|
+      Hash(args).each do |key, value|
         instance_variable_set("@#{key}", value)
       end
     end
