@@ -34,6 +34,7 @@ type Expectation struct {
 	RequestCriteria Criteria    `json:"request_criteria"`
 	RespondWith     RespondWith `json:"respond_with"`
 	MaxMatches      int         `json:"max_matches"`
+	PassThrough     bool        `json:"pass_through"`
 
 	matches int
 	mutex   sync.RWMutex

@@ -21,14 +21,19 @@ func (s *Server) handleProxyRequest(r *http.Request, ctx *goproxy.ProxyCtx) (*ht
 		return r, goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusBadGateway, fmt.Sprintf("everdeen: %s", err))
 	}
 
-	if expectation != nil {
+	if expectation == nil {
+		return r, goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusNotFound, fmt.Sprintf("everdeen: no expectation matched request"))
+	} else {
 		expectation.mutex.Lock()
 		expectation.matches += 1
 		expectation.mutex.Unlock()
-		return proxyRespond(r, expectation.RespondWith)
-	}
 
-	return r, nil
+		if expectation.PassThrough {
+			return r, nil
+		} else {
+			return proxyRespond(r, expectation.RespondWith)
+		}
+	}
 }
 
 func (s *Server) findMatchingExpectation(r *http.Request) (*Expectation, error) {
