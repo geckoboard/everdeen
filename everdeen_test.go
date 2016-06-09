@@ -37,6 +37,10 @@ type scenario struct {
 	response response
 }
 
+var (
+	blockedResponse = response{status: 404, body: "everdeen: no expectation matched request"}
+)
+
 func TestMethodExpectation(t *testing.T) {
 	websiteServer := buildWebsiteServer()
 	defer websiteServer.Close()
@@ -75,10 +79,7 @@ func TestMethodExpectation(t *testing.T) {
 						method: "GET",
 						url:    websiteServer.URL,
 					},
-					response{
-						status: 200,
-						body:   "Got Through",
-					},
+					blockedResponse,
 				},
 			},
 		},
@@ -116,10 +117,7 @@ func TestMethodExpectation(t *testing.T) {
 						method: "GET",
 						url:    websiteServer.URL,
 					},
-					response{
-						status: 200,
-						body:   "Got Through",
-					},
+					blockedResponse,
 				},
 			},
 		},
@@ -158,10 +156,7 @@ func TestMethodExpectation(t *testing.T) {
 						method: "GET",
 						url:    websiteServer.URL,
 					},
-					response{
-						status: 200,
-						body:   "Got Through",
-					},
+					blockedResponse,
 				},
 			},
 		},
@@ -199,10 +194,7 @@ func TestMethodExpectation(t *testing.T) {
 						method: "GET",
 						url:    websiteServer.URL + "/lol",
 					},
-					response{
-						status: 200,
-						body:   "Got Through",
-					},
+					blockedResponse,
 				},
 			},
 		},
@@ -241,10 +233,7 @@ func TestMethodExpectation(t *testing.T) {
 						method: "GET",
 						url:    websiteServer.URL + "/lol",
 					},
-					response{
-						status: 200,
-						body:   "Got Through",
-					},
+					blockedResponse,
 				},
 			},
 		},
@@ -290,10 +279,7 @@ func TestMethodExpectation(t *testing.T) {
 							"Authorization": "something else",
 						},
 					},
-					response{
-						status: 200,
-						body:   "Got Through",
-					},
+					blockedResponse,
 				},
 			},
 		},
@@ -340,10 +326,7 @@ func TestMethodExpectation(t *testing.T) {
 							"Authorization": "something else",
 						},
 					},
-					response{
-						status: 200,
-						body:   "Got Through",
-					},
+					blockedResponse,
 				},
 			},
 		},
@@ -383,10 +366,7 @@ func TestMethodExpectation(t *testing.T) {
 						url:    websiteServer.URL,
 						body:   "foo=something-else",
 					},
-					response{
-						status: 200,
-						body:   "Got Through",
-					},
+					blockedResponse,
 				},
 			},
 		},
@@ -427,10 +407,7 @@ func TestMethodExpectation(t *testing.T) {
 						url:    websiteServer.URL,
 						body:   "foo=something-else",
 					},
-					response{
-						status: 200,
-						body:   "Got Through",
-					},
+					blockedResponse,
 				},
 			},
 		},
@@ -549,10 +526,7 @@ func TestMethodExpectation(t *testing.T) {
 						method: "GET",
 						url:    websiteServer.URL,
 					},
-					response{
-						status: 200,
-						body:   "Got Through",
-					},
+					blockedResponse,
 				},
 			},
 		},
