@@ -25,7 +25,7 @@ func (s *Server) handleProxyRequest(r *http.Request, ctx *goproxy.ProxyCtx) (*ht
 		return r, goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusNotFound, fmt.Sprintf("everdeen: no expectation matched request"))
 	} else {
 		expectation.mutex.Lock()
-		expectation.matches += 1
+		expectation.Matches += 1
 		expectation.mutex.Unlock()
 
 		if expectation.PassThrough {

@@ -23,23 +23,47 @@ type Server struct {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+	if r.URL.Path == "/ping" {
+		fmt.Fprint(w, "PONG")
 		return
 	}
 
+	if r.URL.Path != "/expectations" {
+		http.Error(w, "everdeen: Not Found", http.StatusNotFound)
+		return
+	}
+
+	switch r.Method {
+	case "GET":
+		s.listExectations(w, r)
+	case "POST":
+		s.createExpectations(w, r)
+	default:
+		http.Error(w, "everdeen: Method Not Allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (s *Server) listExectations(w http.ResponseWriter, r *http.Request) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	if err := json.NewEncoder(w).Encode(s.expectations); err != nil {
+		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
+		log.Printf("ERROR: %v", err)
+	}
+}
+
+func (s *Server) createExpectations(w http.ResponseWriter, r *http.Request) {
 	var request CreateExpectationsRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error parsing request payload: %s", err)
+		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
 		log.Printf("ERROR: %v", err)
 		return
 	}
 
 	expectations, err := prepareExpectations(request)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Error adding expectations: %s", err)
+		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusBadRequest)
 		log.Printf("ERROR: %v", err)
 		return
 	}
@@ -69,6 +93,10 @@ func prepareExpectations(request CreateExpectationsRequest) ([]*Expectation, err
 				}
 			}
 		}
+
+		// We expose `Matches` for the `GET /expectations` endpoint
+		// but do not want the client to be able to set it.
+		e.Matches = 0
 
 		expectations = append(expectations, &e)
 	}

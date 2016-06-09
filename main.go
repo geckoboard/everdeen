@@ -11,7 +11,7 @@ func main() {
 	proxy := goproxy.NewProxyHttpServer()
 
 	server := &Server{Proxy: proxy}
-	http.Handle("/expectations", server)
+	http.Handle("/", server)
 	go http.ListenAndServe(":4322", nil)
 
 	proxy.Verbose = true
