@@ -5,8 +5,8 @@ RSpec.describe 'Expectation', type: :unit do
     let(:expected_response) {{ status: 200, body: 'Hello World', headers: nil, body_encoding: '' }}
     let(:expected_request) do
       [
-        {key: nil, type: 'Method', value: 'POST', match_type: 'exact'},
-        {key: 'Host', type: 'Header', value: 'example.com', match_type: 'exact'}
+        {key: nil, type: 'method', value: 'POST', match_type: 'exact'},
+        {key: 'Host', type: 'header', value: 'example.com', match_type: 'exact'}
       ]
     end
 
@@ -15,8 +15,8 @@ RSpec.describe 'Expectation', type: :unit do
         max_matches: 3,
         pass_through: true,
         request_criteria: [
-          {type: 'Method', value: 'POST'},
-          {key: 'Host', type: 'Header', value: 'example.com'}
+          {type: 'method', value: 'POST'},
+          {key: 'Host', type: 'header', value: 'example.com'}
         ],
         response: {status: 200, body: 'Hello World'}
       )
@@ -54,7 +54,7 @@ RSpec.describe 'Expectation', type: :unit do
   end
 
   describe '#add_request' do
-    let(:request_hash) {{ request_criteria:[{ type: 'Method', value: 'GET' }]}}
+    let(:request_hash) {{ request_criteria:[{ type: 'method', value: 'GET' }]}}
     subject { Everdeen::Expectation.new(request_hash).request_criteria }
 
     it 'creates a new request criteria' do
@@ -65,7 +65,7 @@ RSpec.describe 'Expectation', type: :unit do
 
   describe '#to_hash' do
     let(:response) { Everdeen::Response.new(status: 200) }
-    let(:request) { Everdeen::RequestCriteria.new(type: 'Method', value: 'GET') }
+    let(:request) { Everdeen::RequestCriteria.new(type: 'method', value: 'GET') }
 
     before do
       allow(subject).to receive(:request_criteria).and_return(request)

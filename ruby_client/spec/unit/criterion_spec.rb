@@ -1,5 +1,5 @@
 RSpec.describe 'Criterion', type: :unit do
-  subject { Everdeen::Criterion.new(type: 'Header', key: 'Host', match_type: 'fuzzy', value: 'ZZ') }
+  subject { Everdeen::Criterion.new(type: 'header', key: 'Host', match_type: 'fuzzy', value: 'ZZ') }
 
   describe '#initialize' do
     it 'assigns variables passed in the hash' do
