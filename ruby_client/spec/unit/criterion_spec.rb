@@ -1,7 +1,7 @@
 RSpec.describe 'Criterion', type: :unit do
-  describe '#initialize' do
-    subject { Everdeen::Criterion.new(type: 'Header', key: 'Host', match_type: 'fuzzy', value: 'ZZ') }
+  subject { Everdeen::Criterion.new(type: 'Header', key: 'Host', match_type: 'fuzzy', value: 'ZZ') }
 
+  describe '#initialize' do
     it 'assigns variables passed in the hash' do
       expect(subject.type).to eq 'Header'
       expect(subject.key).to eq 'Host'
@@ -11,8 +11,6 @@ RSpec.describe 'Criterion', type: :unit do
   end
 
   describe '#match_type' do
-    subject { Everdeen::Criterion.new }
-
     it 'returns exact when match_type is nil' do
       subject.instance_variable_set('@match_type', nil)
       expect(subject.match_type).to eq 'exact'
@@ -21,6 +19,17 @@ RSpec.describe 'Criterion', type: :unit do
     it 'returns user set match type' do
       subject.instance_variable_set('@match_type', 'regex')
       expect(subject.match_type).to eq 'regex'
+    end
+  end
+
+  describe '#as_hash' do
+    it 'returns hash of the criterion defined attributes' do
+      expect(subject.as_hash).to eq({
+        key: 'Host',
+        match_type: 'fuzzy',
+        type: 'Header',
+        value: 'ZZ'
+      })
     end
   end
 end

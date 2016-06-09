@@ -11,5 +11,14 @@ module Everdeen
     def match_type
       @match_type.nil? ? 'exact' : @match_type
     end
+
+    def as_hash
+      {
+        key: key,
+        match_type: match_type,
+        type: type,
+        value: value
+      }
+    end
   end
 end
