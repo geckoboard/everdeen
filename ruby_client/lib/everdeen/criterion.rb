@@ -1,6 +1,6 @@
 module Everdeen
   class Criterion
-    attr_reader :key, :match_type, :type, :value
+    attr_reader :key, :type, :value
 
     def initialize(args = {})
       args.each do |key, value|

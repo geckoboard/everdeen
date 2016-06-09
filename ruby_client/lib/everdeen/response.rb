@@ -1,6 +1,6 @@
 module Everdeen
   class Response
-    attr_reader :status, :headers, :body, :body_encoding
+    attr_reader :status, :headers, :body
 
     def initialize(args = {})
       args.each do |key, value|
