@@ -85,7 +85,7 @@ func TestTlsCert(t *testing.T) {
 }
 
 func TestGenerateAndSave(t *testing.T) {
-	tlsc, err := GenerateAndSave("certy", "cert authority", "cert.pem", "key.pem", 1*24*time.Hour)
+	tlsc, err := GenerateAndSave("certy", "cert authority", 1*24*time.Hour)
 	if err != nil {
 		t.Errorf("Failed to generate tls certificate, got error: %s", err.Error())
 	}
