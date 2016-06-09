@@ -22,9 +22,9 @@ RSpec.describe 'Criterion', type: :unit do
     end
   end
 
-  describe '#as_hash' do
+  describe '#to_hash' do
     it 'returns hash of the criterion defined attributes' do
-      expect(subject.as_hash).to eq({
+      expect(subject.to_hash).to eq({
         key: 'Host',
         match_type: 'fuzzy',
         type: 'Header',

@@ -57,7 +57,7 @@ RSpec.describe 'Expectation', type: :unit do
     end
   end
 
-  describe '#as_hash' do
+  describe '#to_hash' do
     let(:response) { Everdeen::Response.new(status: 200) }
     let(:request) { Everdeen::RequestCriteria.new(type: 'Method', value: 'GET') }
 
@@ -67,11 +67,11 @@ RSpec.describe 'Expectation', type: :unit do
     end
 
     it 'returns hash of the response defined attributes' do
-      expect(subject.as_hash).to eq(
+      expect(subject.to_hash).to eq(
         max_matches: 3,
         pass_through: false,
-        request_criteria: request.as_hash,
-        respond_with: response.as_hash
+        request_criteria: request.to_hash,
+        respond_with: response.to_hash
       )
     end
   end

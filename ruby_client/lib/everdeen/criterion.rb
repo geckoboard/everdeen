@@ -9,10 +9,10 @@ module Everdeen
     end
 
     def match_type
-      @match_type.nil? ? 'exact' : @match_type
+      @match_type || 'exact'
     end
 
-    def as_hash
+    def to_hash
       {
         key: key,
         match_type: match_type,

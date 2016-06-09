@@ -23,12 +23,12 @@ module Everdeen
       @request_criteria = RequestCriteria.new(request_attrs)
     end
 
-    def as_hash
+    def to_hash
       {
         max_matches: max_matches,
         pass_through: pass_through,
-        request_criteria: request_criteria.as_hash,
-        respond_with: response.as_hash
+        request_criteria: request_criteria.to_hash,
+        respond_with: response.to_hash
       }
     end
   end

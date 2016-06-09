@@ -17,7 +17,7 @@ RSpec.describe 'RequestCriteria', type: :unit do
     end
   end
 
-  describe '#as_hash' do
+  describe '#to_hash' do
     let(:criterion_a) {{ type: 'Method', value: 'POST' }}
     let(:criterion_b) {{ key: 'Host', type:'Header', value: 'example.com', match_type: :exact }}
 
@@ -27,7 +27,7 @@ RSpec.describe 'RequestCriteria', type: :unit do
     end
 
     it 'returns an array of criterion hashes' do
-      expect(subject.as_hash).to eq [criterion_a.merge(key: nil, match_type: 'exact'), criterion_b]
+      expect(subject.to_hash).to eq [criterion_a.merge(key: nil, match_type: 'exact'), criterion_b]
     end
   end
 end

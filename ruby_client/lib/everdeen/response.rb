@@ -12,7 +12,7 @@ module Everdeen
       @body_encoding.to_s
     end
 
-    def as_hash
+    def to_hash
       {
         status: status,
         headers: headers,

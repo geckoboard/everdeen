@@ -29,9 +29,9 @@ RSpec.describe 'Response', type: :unit do
     end
   end
 
-  describe '#as_hash' do
+  describe '#to_hash' do
     it 'returns hash of the response defined attributes' do
-      expect(subject.as_hash).to eq(
+      expect(subject.to_hash).to eq(
         status: 200,
         headers: {'Host' => 'example.com'},
         body: 'SGVsbG8gV29ybGQK',

@@ -14,8 +14,8 @@ module Everdeen
       criteria << Criterion.new(criterion_attrs)
     end
 
-    def as_hash
-      criteria.map(&:as_hash)
+    def to_hash
+      criteria.map(&:to_hash)
     end
   end
 end
