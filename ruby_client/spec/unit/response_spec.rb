@@ -19,12 +19,12 @@ RSpec.describe 'Response', type: :unit do
 
   describe '#body_encoding' do
     it 'returns empty string when body_coding is nil' do
-      subject.body_encoding = nil
+      subject = Everdeen::Response.new(body_encoding: nil)
       expect(subject.body_encoding).to eq ''
     end
 
     it 'returns user set body_encoding' do
-      subject.body_encoding = 'base64'
+      subject = Everdeen::Response.new(body_encoding: 'base64')
       expect(subject.body_encoding).to eq 'base64'
     end
   end

@@ -1,10 +1,10 @@
 module Everdeen
   class Criterion
-    attr_accessor :key, :match_type, :type, :value
+    attr_reader :key, :match_type, :type, :value
 
     def initialize(args = {})
       args.each do |key, value|
-        self.send("#{key}=", value)
+        instance_variable_set("@#{key}", value)
       end
     end
 

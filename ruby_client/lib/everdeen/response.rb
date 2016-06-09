@@ -1,10 +1,10 @@
 module Everdeen
   class Response
-    attr_accessor :status, :headers, :body, :body_encoding
+    attr_reader :status, :headers, :body, :body_encoding
 
     def initialize(args = {})
       args.each do |key, value|
-        self.send("#{key}=", value)
+        instance_variable_set("@#{key}", value)
       end
     end
 
