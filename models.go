@@ -36,7 +36,7 @@ type Expectation struct {
 	MaxMatches      int         `json:"max_matches"`
 	PassThrough     bool        `json:"pass_through"`
 
-	matches int
+	Matches int `json:"matches"`
 	mutex   sync.RWMutex
 }
 
@@ -44,7 +44,7 @@ func (e *Expectation) Match(r *http.Request) (bool, error) {
 	e.mutex.RLock()
 	defer e.mutex.RUnlock()
 
-	if e.MaxMatches > 0 && e.matches >= e.MaxMatches {
+	if e.MaxMatches > 0 && e.Matches >= e.MaxMatches {
 		return false, nil
 	}
 
