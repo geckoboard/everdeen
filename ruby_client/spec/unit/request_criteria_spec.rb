@@ -1,5 +1,18 @@
 RSpec.describe 'RequestCriteria', type: :unit do
-  subject { Everdeen::RequestCriteria.new({type: 'Host', value: 'example.com'}) }
+  subject { Everdeen::RequestCriteria.new([{type: 'Host', value: 'example.com'}]) }
+
+  describe '#initialize' do
+    subject do
+      Everdeen::RequestCriteria.new([
+        {type: 'Host', value: 'example.com'},
+        {type: 'Method', value: 'GET'}
+      ])
+    end
+
+    it 'creates multiple criterion' do
+      expect(subject.criteria.size).to eq 2
+    end
+  end
 
   describe '#criteria' do
     it 'returns criteria' do

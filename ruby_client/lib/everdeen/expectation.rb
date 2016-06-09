@@ -5,6 +5,10 @@ module Everdeen
 
     def initialize(args = {})
       self.max_matches = args[:max_matches]
+      self.pass_through = args[:pass_through]
+
+      add_response(args[:response]) if args[:response]
+      add_request(args[:request_criteria]) if args[:request_criteria]
     end
 
     def max_matches

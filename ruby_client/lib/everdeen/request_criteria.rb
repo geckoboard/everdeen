@@ -1,6 +1,6 @@
 module Everdeen
   class RequestCriteria
-    def initialize(*criterion)
+    def initialize(criterion)
       criterion.each do |criterion_attr|
         add_criterion(criterion_attr)
       end
