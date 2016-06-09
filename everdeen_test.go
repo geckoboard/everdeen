@@ -46,7 +46,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					RequestCriteria: []Criteria{
+					RequestCriteria: Criteria{
 						{
 							Type:  CriteriaTypeMethod,
 							Value: "POST",
@@ -87,7 +87,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					RequestCriteria: []Criteria{
+					RequestCriteria: Criteria{
 						{
 							Type:  CriteriaTypeHost,
 							Value: "google.com",
@@ -128,7 +128,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					RequestCriteria: []Criteria{
+					RequestCriteria: Criteria{
 						{
 							Type:      CriteriaTypeHost,
 							MatchType: MatchTypeRegex,
@@ -170,7 +170,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					RequestCriteria: []Criteria{
+					RequestCriteria: Criteria{
 						{
 							Type:  CriteriaTypePath,
 							Value: "/foo/bar",
@@ -211,7 +211,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					RequestCriteria: []Criteria{
+					RequestCriteria: Criteria{
 						{
 							Type:      CriteriaTypePath,
 							MatchType: MatchTypeRegex,
@@ -253,7 +253,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					RequestCriteria: []Criteria{
+					RequestCriteria: Criteria{
 						{
 							Type:  CriteriaTypeHeader,
 							Key:   "Authorization",
@@ -302,7 +302,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					RequestCriteria: []Criteria{
+					RequestCriteria: Criteria{
 						{
 							Type:      CriteriaTypeHeader,
 							Key:       "Authorization",
@@ -352,7 +352,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					RequestCriteria: []Criteria{
+					RequestCriteria: Criteria{
 						{
 							Type:  CriteriaTypeBody,
 							Value: "foo=bar",
@@ -395,7 +395,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					RequestCriteria: []Criteria{
+					RequestCriteria: Criteria{
 						{
 							Type:      CriteriaTypeBody,
 							Value:     "foo=(bar|baz)",
@@ -439,7 +439,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					RequestCriteria: []Criteria{
+					RequestCriteria: Criteria{
 						{
 							Type:  CriteriaTypeMethod,
 							Value: "GET",
@@ -476,7 +476,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					RequestCriteria: []Criteria{
+					RequestCriteria: Criteria{
 						{
 							Type:  CriteriaTypeMethod,
 							Value: "GET",
@@ -508,7 +508,7 @@ func TestMethodExpectation(t *testing.T) {
 		{
 			expectations: []Expectation{
 				{
-					RequestCriteria: []Criteria{
+					RequestCriteria: Criteria{
 						{
 							Type:  CriteriaTypeMethod,
 							Value: "GET",
@@ -567,7 +567,8 @@ func runTestCase(t *testing.T, i int, tc testCase) {
 	proxy, proxyServer, proxyClient := buildProxy()
 	defer proxyServer.Close()
 
-	server := Server{Proxy: proxy}
+	server := &Server{Proxy: proxy}
+	proxy.OnRequest().DoFunc(server.handleProxyRequest)
 
 	cer := CreateExpectationsRequest{tc.expectations}
 	json, err := json.Marshal(cer)
