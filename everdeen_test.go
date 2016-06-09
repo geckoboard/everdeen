@@ -412,6 +412,131 @@ func TestMethodExpectation(t *testing.T) {
 			},
 		},
 
+		// Query Param Matcher (Single / Exact)
+		{
+			expectations: []Expectation{
+				{
+					RequestCriteria: Criteria{
+						{
+							Type:  CriteriaTypeQueryParam,
+							Key:   "q",
+							Value: "Search Term",
+						},
+					},
+
+					RespondWith: RespondWith{
+						Status: 418,
+						Body:   "Proxy Response",
+					},
+				},
+			},
+			scenarios: []scenario{
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL + "?q=Search+Term",
+					},
+					response{
+						status: 418,
+						body:   "Proxy Response",
+					},
+				},
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL + "?q=Something+Else",
+					},
+					blockedResponse,
+				},
+			},
+		},
+
+		// Query Param Matcher (Many / Exact)
+		{
+			expectations: []Expectation{
+				{
+					RequestCriteria: Criteria{
+						{
+							Type:   CriteriaTypeQueryParam,
+							Key:    "name",
+							Values: []string{"Jack", "Sally"},
+						},
+					},
+
+					RespondWith: RespondWith{
+						Status: 418,
+						Body:   "Proxy Response",
+					},
+				},
+			},
+			scenarios: []scenario{
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL + "?name=Sally&name=Jack",
+					},
+					response{
+						status: 418,
+						body:   "Proxy Response",
+					},
+				},
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL + "?name=Jack",
+					},
+					blockedResponse,
+				},
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL + "?name=Sally",
+					},
+					blockedResponse,
+				},
+			},
+		},
+
+		// Query Param Matcher (Regex)
+		{
+			expectations: []Expectation{
+				{
+					RequestCriteria: Criteria{
+						{
+							Type:      CriteriaTypeQueryParam,
+							Key:       "name",
+							MatchType: MatchTypeRegex,
+							Value:     "Dan(iel)?",
+						},
+					},
+
+					RespondWith: RespondWith{
+						Status: 418,
+						Body:   "Proxy Response",
+					},
+				},
+			},
+			scenarios: []scenario{
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL + "?name=Daniel",
+					},
+					response{
+						status: 418,
+						body:   "Proxy Response",
+					},
+				},
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL + "?q=Fred",
+					},
+					blockedResponse,
+				},
+			},
+		},
+
 		// Responding With Custom Headers
 		{
 			expectations: []Expectation{
