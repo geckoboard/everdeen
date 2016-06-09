@@ -11,14 +11,11 @@ RSpec.describe 'Criterion', type: :unit do
   end
 
   describe '#match_type' do
-    it 'returns exact when match_type is nil' do
-      subject.instance_variable_set('@match_type', nil)
-      expect(subject.match_type).to eq 'exact'
-    end
-
-    it 'returns user set match type' do
-      subject.instance_variable_set('@match_type', 'regex')
-      expect(subject.match_type).to eq 'regex'
+    [{returns: 'exact', match_type: nil}, {returns: 'regex', match_type: 'regex'}].each do |tc|
+      it "returns #{tc[:returns]} when match_type is #{tc[:match_type].inspect}" do
+        subject = Everdeen::Criterion.new(match_type: tc[:match_type])
+        expect(subject.match_type).to eq tc[:returns]
+      end
     end
   end
 

@@ -1,18 +1,16 @@
 RSpec.describe 'RequestCriteria', type: :unit do
-  subject { Everdeen::RequestCriteria.new }
+  subject { Everdeen::RequestCriteria.new({type: 'Host', value: 'example.com'}) }
 
   describe '#criteria' do
-    it 'returns an empty array when nil' do
-      subject.instance_variable_set('@criteria', nil)
-      expect(subject.criteria).to eq []
+    it 'returns criteria' do
+      expect(subject.criteria.size).to eq 1
+      expect(subject.criteria.first).to be_an_instance_of(Everdeen::Criterion)
     end
   end
 
   describe '#add_criteria' do
-    let(:criterion_attr) {{ type: 'Method', value: 'POST' }}
-
     it 'creates a new criterion and adds to criteria' do
-      subject.add_criterion(criterion_attr)
+      expect(Everdeen::Criterion).to receive(:new).with(type: 'Host', value: 'example.com')
       expect(subject.criteria.size).to eq 1
     end
   end
