@@ -27,7 +27,12 @@ func (s *Server) handleProxyRequest(r *http.Request, ctx *goproxy.ProxyCtx) (*ht
 		expectation.mutex.Lock()
 		expectation.matches += 1
 		expectation.mutex.Unlock()
-		return proxyRespond(r, expectation.RespondWith)
+
+		if expectation.PassThrough {
+			return r, nil
+		} else {
+			return proxyRespond(r, expectation.RespondWith)
+		}
 	}
 }
 

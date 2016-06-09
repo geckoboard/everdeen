@@ -530,6 +530,43 @@ func TestMethodExpectation(t *testing.T) {
 				},
 			},
 		},
+
+		// Pass Through
+		{
+			expectations: []Expectation{
+				{
+					RequestCriteria: Criteria{
+						{
+							Type:  CriteriaTypeMethod,
+							Value: "GET",
+						},
+					},
+
+					PassThrough: true,
+				},
+			},
+
+			scenarios: []scenario{
+				{
+					request{
+						method: "GET",
+						url:    websiteServer.URL,
+					},
+					response{
+						status: 200,
+						body:   "Got Through",
+					},
+				},
+
+				{
+					request{
+						method: "POST",
+						url:    websiteServer.URL,
+					},
+					blockedResponse,
+				},
+			},
+		},
 	}
 
 	for i, tc := range testCases {
