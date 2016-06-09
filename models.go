@@ -9,11 +9,12 @@ import (
 type CriteriaType string
 
 const (
-	CriteriaTypeMethod CriteriaType = "method"
-	CriteriaTypeHost   CriteriaType = "host"
-	CriteriaTypePath   CriteriaType = "path"
-	CriteriaTypeHeader CriteriaType = "header"
-	CriteriaTypeBody   CriteriaType = "body"
+	CriteriaTypeMethod     CriteriaType = "method"
+	CriteriaTypeHost       CriteriaType = "host"
+	CriteriaTypePath       CriteriaType = "path"
+	CriteriaTypeHeader     CriteriaType = "header"
+	CriteriaTypeBody       CriteriaType = "body"
+	CriteriaTypeQueryParam CriteriaType = "query_param"
 )
 
 type MatchType string
@@ -70,6 +71,7 @@ type Criterion struct {
 	Key       string       `json:"key"`
 	MatchType MatchType    `json:"match_type"`
 	Value     string       `json:"value"`
+	Values    []string     `json:"values"`
 
 	regexp *regexp.Regexp
 }
@@ -88,6 +90,12 @@ func (c *Criterion) Match(r *http.Request) (bool, error) {
 			return headerIsExactly(r, c.Key, c.Value)
 		case CriteriaTypeBody:
 			return bodyIsExactly(r, c.Value)
+		case CriteriaTypeQueryParam:
+			if c.Value != "" {
+				return queryParamIsExactly(r, c.Key, c.Value)
+			} else {
+				return queryParamIsAllOf(r, c.Key, c.Values)
+			}
 		}
 
 	case MatchTypeRegex:
@@ -100,6 +108,8 @@ func (c *Criterion) Match(r *http.Request) (bool, error) {
 			return headerMatches(r, c.Key, c.regexp)
 		case CriteriaTypeBody:
 			return bodyMatches(r, c.regexp)
+		case CriteriaTypeQueryParam:
+			return queryParamMatches(r, c.Key, c.regexp)
 		}
 	}
 

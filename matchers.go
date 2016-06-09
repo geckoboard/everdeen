@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"regexp"
+	"sort"
 )
 
 func reqMethodIsExactly(r *http.Request, method string) (bool, error) {
@@ -33,6 +35,25 @@ func bodyIsExactly(r *http.Request, body string) (bool, error) {
 	return string(bodyBytes) == body, nil
 }
 
+func queryParamIsExactly(r *http.Request, key string, value string) (bool, error) {
+	return r.URL.Query().Get(key) == value, nil
+}
+
+func queryParamIsAllOf(r *http.Request, key string, values []string) (bool, error) {
+	queryValues, ok := r.URL.Query()[key]
+	if !ok {
+		return false, nil
+	}
+
+	expected := sort.StringSlice(values)
+	expected.Sort()
+
+	got := sort.StringSlice(queryValues)
+	got.Sort()
+
+	return reflect.DeepEqual(expected, got), nil
+}
+
 func reqHostMatches(r *http.Request, re *regexp.Regexp) (bool, error) {
 	return re.MatchString(r.URL.Host), nil
 }
@@ -43,6 +64,10 @@ func pathMatches(r *http.Request, re *regexp.Regexp) (bool, error) {
 
 func headerMatches(r *http.Request, key string, re *regexp.Regexp) (bool, error) {
 	return re.MatchString(r.Header.Get(key)), nil
+}
+
+func queryParamMatches(r *http.Request, key string, re *regexp.Regexp) (bool, error) {
+	return re.MatchString(r.URL.Query().Get(key)), nil
 }
 
 func bodyMatches(r *http.Request, re *regexp.Regexp) (bool, error) {
