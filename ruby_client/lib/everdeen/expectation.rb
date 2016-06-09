@@ -1,11 +1,10 @@
 module Everdeen
   class Expectation
-    attr_accessor :max_matches, :pass_through
-    attr_reader :response, :request_criteria
+    attr_reader :max_matches, :pass_through, :response, :request_criteria
 
     def initialize(args = {})
-      self.max_matches = args[:max_matches]
-      self.pass_through = args[:pass_through]
+      @max_matches = args[:max_matches]
+      @pass_through = args[:pass_through]
 
       add_response(args[:response]) if args[:response]
       add_request(args[:request_criteria]) if args[:request_criteria]
@@ -16,7 +15,7 @@ module Everdeen
     end
 
     def pass_through
-      @pass_through.nil? ? false : true
+      !!@pass_through
     end
 
     def add_response(response_attr)

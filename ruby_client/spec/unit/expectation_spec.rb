@@ -46,30 +46,22 @@ RSpec.describe 'Expectation', type: :unit do
   end
 
   describe '#max_matches' do
-    it 'defaults it to 1 when 0' do
-      subject.max_matches = 0
-      expect(subject.max_matches).to eq 1
-    end
-
-    it 'defaults it to 1 when nil' do
-      subject.max_matches = nil
-      expect(subject.max_matches).to eq 1
-    end
-
-    it 'returns the user set value' do
-      subject.max_matches = 3
-      expect(subject.max_matches).to eq 3
+    [{expected: 1, input: 0}, {expected: 1, input: nil}, {expected:3, input: 3}].each do |tc|
+      it "returns #{tc[:expected]} when #{tc[:input].inspect}" do
+        subject = Everdeen::Expectation.new(max_matches: tc[:max_matches])
+        expect(subject.max_matches).to eq 1
+      end
     end
   end
 
   describe '#pass_through' do
     it 'defaults to false when nil' do
-      subject.pass_through = nil
+      subject = Everdeen::Expectation.new(pass_through: nil)
       expect(subject.pass_through).to be false
     end
 
     it 'returns true otherwise disregarding user input' do
-      subject.pass_through = 'not nil but not true either'
+      subject = Everdeen::Expectation.new(pass_through: 'not nil or true')
       expect(subject.pass_through).to be_truthy
     end
   end
