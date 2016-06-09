@@ -10,10 +10,6 @@ module Everdeen
       add_request(args[:request_criteria]) if args[:request_criteria]
     end
 
-    def max_matches
-      @max_matches.to_i == 0 ? 1 : @max_matches
-    end
-
     def pass_through
       !!@pass_through
     end
