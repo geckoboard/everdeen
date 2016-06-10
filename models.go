@@ -31,6 +31,13 @@ const (
 	BodyEncodingBase64 BodyEncoding = "base64"
 )
 
+type Request struct {
+	URL        string              `json:"url"`
+	Method     string              `json:"method"`
+	Headers    map[string][]string `json:"headers"`
+	BodyBase64 string              `json:"body_base64"`
+}
+
 type Expectation struct {
 	RequestCriteria Criteria    `json:"request_criteria"`
 	RespondWith     RespondWith `json:"respond_with"`

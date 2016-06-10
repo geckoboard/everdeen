@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -760,6 +761,89 @@ func runTestCase(t *testing.T, i int, tc testCase) {
 				t.Errorf("[%d - %d] unexpected value for header: %s, expected: %s, got: %s", i, idx, key, value, got)
 			}
 		}
+	}
+}
+
+func TestRequestRecording(t *testing.T) {
+	proxy, proxyServer, proxyClient := buildProxy()
+	defer proxyServer.Close()
+
+	server := &Server{Proxy: proxy, storeRequests: true}
+	proxy.OnRequest().DoFunc(server.handleProxyRequest)
+
+	req, err := http.NewRequest("POST", "http://www.geckoboard.com/hello-world", strings.NewReader("Some Stuff"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("X-Some-Header", "Hello World")
+	req.Header.Add("User-Agent", "Awesome User Agent")
+
+	_, err = proxyClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	find := FindRequest{
+		RequestCriteria: Criteria{
+			{
+				Type:  CriteriaTypeMethod,
+				Value: "POST",
+			},
+			{
+				Type:  CriteriaTypeHeader,
+				Key:   "X-Some-Header",
+				Value: "Hello World",
+			},
+			{
+				Type:      CriteriaTypeHost,
+				Value:     `.*\.geckoboard\.com`,
+				MatchType: MatchTypeRegex,
+			},
+			{
+				Type:  CriteriaTypeBody,
+				Value: "Some Stuff",
+			},
+		},
+	}
+
+	j, err := json.Marshal(find)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req, err = http.NewRequest("POST", "/requests", bytes.NewReader(j))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("unexpected status code when finding requests %d", rec.Code)
+	}
+
+	findResponse := FindResponse{}
+	if err := json.NewDecoder(rec.Body).Decode(&findResponse); err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(findResponse, FindResponse{
+		Requests: []Request{
+			{
+				URL:    "http://www.geckoboard.com/hello-world",
+				Method: "POST",
+				Headers: map[string][]string{
+					"Accept-Encoding": []string{"gzip"},
+					"Content-Length":  []string{"10"},
+					"X-Some-Header":   []string{"Hello World"},
+					"User-Agent":      []string{"Awesome User Agent"},
+				},
+				BodyBase64: "U29tZSBTdHVmZg==",
+			},
+		},
+	}) {
+		t.Errorf("unexpected response from requests endpoint: %#v", findResponse)
 	}
 }
 

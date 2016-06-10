@@ -13,10 +13,11 @@ import (
 )
 
 var (
-	proxyAddr   = flag.String("proxy-addr", ":4321", "Listen address for the HTTP proxy")
-	controlAddr = flag.String("control-addr", ":4322", "Listen address for the control API")
-	caCertPath  = flag.String("ca-cert-path", "", "Path to CA certificate file")
-	caKeyPath   = flag.String("ca-key-path", "", "Path to CA private key file")
+	proxyAddr     = flag.String("proxy-addr", ":4321", "Listen address for the HTTP proxy")
+	controlAddr   = flag.String("control-addr", ":4322", "Listen address for the control API")
+	caCertPath    = flag.String("ca-cert-path", "", "Path to CA certificate file")
+	caKeyPath     = flag.String("ca-key-path", "", "Path to CA private key file")
+	storeRequests = flag.Bool("store-requests", false, "TODO: description")
 
 	generateCA = flag.Bool("generate-ca-cert", false, "Generate CA certificate and private key for MITM")
 )
@@ -42,7 +43,11 @@ func startProxy() {
 
 	proxy := goproxy.NewProxyHttpServer()
 
-	server := &Server{Proxy: proxy}
+	server := &Server{
+		Proxy:         proxy,
+		expectations:  []*Expectation{},
+		storeRequests: *storeRequests,
+	}
 	http.Handle("/", server)
 	go http.ListenAndServe(*controlAddr, nil)
 
