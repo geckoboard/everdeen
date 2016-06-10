@@ -34,6 +34,29 @@ module Everdeen
           value: 'ZZ'
         })
       end
+
+      describe 'query_params' do
+        let(:criterion_a) { Everdeen::Criterion.new(type: 'query_param', key: 'name', value: 'Tom') }
+        let(:criterion_b) { Everdeen::Criterion.new(type: 'query_param', key: 'name', value: ['Tom', 'Jerry']) }
+
+        it 'returns value with string' do
+          expect(criterion_a.to_hash).to eq({
+            key: 'name',
+            match_type: 'exact',
+            type: 'query_param',
+            value: 'Tom'
+          })
+        end
+
+        it 'returns values as the user array' do
+          expect(criterion_b.to_hash).to eq({
+            key: 'name',
+            match_type: 'exact',
+            type: 'query_param',
+            values: ['Tom', 'Jerry']
+          })
+        end
+      end
     end
   end
 end

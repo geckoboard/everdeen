@@ -13,12 +13,19 @@ module Everdeen
     end
 
     def to_hash
-      {
-        key: key,
-        match_type: match_type,
-        type: type,
-        value: value
-      }
+      base = { key: key, match_type: match_type, type: type }
+
+      if query_param_type? && value.is_a?(Array)
+        base.merge(values: value)
+      else
+        base.merge(value: value)
+      end
+    end
+
+    private
+
+    def query_param_type?
+      type == 'query_param'
     end
   end
 end
