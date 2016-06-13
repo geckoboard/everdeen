@@ -8,11 +8,12 @@ module Everdeen
       server
     end
 
-    attr_reader :proxy_port, :control_port
+    attr_reader :proxy_port, :control_port, :store_requests
 
     def initialize(opts = {})
-      @proxy_port   = opts.fetch(:proxy_port)
-      @control_port = opts.fetch(:control_port)
+      @proxy_port     = opts.fetch(:proxy_port)
+      @control_port   = opts.fetch(:control_port)
+      @store_requests = opts.fetch(:store_requests, false)
     end
 
     def start
@@ -42,7 +43,8 @@ module Everdeen
       @pipe = IO.popen([
         Everdeen.bin_path,
         "-proxy-addr=#{proxy_addr}",
-        "-control-addr=#{control_addr}"
+        "-control-addr=#{control_addr}",
+        "-store-requests=#{store_requests}"
       ])
     end
 
