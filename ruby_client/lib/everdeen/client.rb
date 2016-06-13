@@ -15,6 +15,17 @@ module Everdeen
       JSON.parse(response)
     end
 
+    def requests(request_criteria)
+      uri = build_uri('/requests')
+
+      request = Net::HTTP::Post.new(uri, { 'Content-Type' => 'application/json' })
+      request.body = { request_criteria: request_criteria.to_hash }.to_json
+
+      Net::HTTP.start(uri.host, uri.port) do |http|
+        JSON.parse(http.request(request).body)
+      end
+    end
+
     def create_expectations(expectations)
       uri = build_uri('/expectations')
 

@@ -29,6 +29,10 @@ module Everdeen
       client.registered_expectations
     end
 
+    def requests(request_criteria)
+      client.requests(request_criteria)['requests'].collect{ |req| Request.new(req) }
+    end
+
     def stop
       Process.kill(:INT, @pipe.pid)
     end
