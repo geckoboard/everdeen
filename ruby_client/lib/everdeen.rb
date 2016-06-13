@@ -9,6 +9,7 @@ require 'everdeen/request_criteria'
 require 'everdeen/expectation'
 require 'everdeen/server'
 require 'everdeen/client'
+require 'everdeen/request'
 
 module Everdeen
   SUPPORTED_PLATFORMS = %w[x86_64-linux-gnu]
