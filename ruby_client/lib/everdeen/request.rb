@@ -14,5 +14,19 @@ module Everdeen
     def body
       Base64.decode64(body_base64)
     end
+
+    def ==(diff_req)
+      return false unless diff_req.is_a?(Everdeen::Request)
+      attributes == diff_req.attributes
+    end
+
+    def attributes
+      {
+        url: url,
+        method: method,
+        headers: headers,
+        body_base64: body_base64
+      }
+    end
   end
 end
