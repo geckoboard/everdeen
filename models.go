@@ -98,7 +98,7 @@ func (c *Criterion) Match(r *http.Request) (bool, error) {
 		case CriteriaTypeBody:
 			return bodyIsExactly(r, c.Value)
 		case CriteriaTypeQueryParam:
-			if c.Value != "" {
+			if len(c.Values) == 0 {
 				return queryParamIsExactly(r, c.Key, c.Value)
 			} else {
 				return queryParamIsAllOf(r, c.Key, c.Values)
