@@ -708,25 +708,10 @@ func runTestCase(t *testing.T, i int, tc testCase) {
 	proxy.OnRequest().DoFunc(server.handleProxyRequest)
 
 	cer := CreateExpectationsRequest{tc.expectations}
-	json, err := json.Marshal(cer)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	req, err := http.NewRequest("POST", "/expectations", bytes.NewReader(json))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rec := httptest.NewRecorder()
-	server.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("[%d] unexpected status code while setting up expectations: %d", i, rec.Code)
-	}
+	createExpectations(t, server, &cer)
 
 	for idx, scenario := range tc.scenarios {
-		req, err = http.NewRequest(scenario.request.method, scenario.request.url, strings.NewReader(scenario.request.body))
+		req, err := http.NewRequest(scenario.request.method, scenario.request.url, strings.NewReader(scenario.request.body))
 		if err != nil {
 			t.Fatalf("[%d - %d] error building request for scenario: %v", i, idx, err)
 		}
@@ -764,17 +749,48 @@ func runTestCase(t *testing.T, i int, tc testCase) {
 	}
 }
 
-func TestRequestRecording(t *testing.T) {
+func TestRequestMatchingExpectationId(t *testing.T) {
 	proxy, proxyServer, proxyClient := buildProxy()
 	defer proxyServer.Close()
 
-	server := &Server{Proxy: proxy, storeRequests: true}
+	server := &Server{Proxy: proxy}
 	proxy.OnRequest().DoFunc(server.handleProxyRequest)
+
+	//Setup an expectation
+	expectations := []Expectation{
+		{
+			Id: 31,
+			StoreMatchingRequests: true,
+			RequestCriteria: Criteria{
+				{
+					Type:  CriteriaTypeMethod,
+					Value: "POST",
+				},
+				{
+					Type:  CriteriaTypeHost,
+					Value: "www.geckoboard.com",
+				},
+				{
+					Type:  CriteriaTypePath,
+					Value: "/hello-world",
+				},
+			},
+			RespondWith: RespondWith{
+				Status:       http.StatusOK,
+				Body:         "Its me!!!",
+				BodyEncoding: BodyEncodingNone,
+			},
+		},
+	}
+
+	cer := CreateExpectationsRequest{expectations}
+	createExpectations(t, server, &cer)
 
 	req, err := http.NewRequest("POST", "http://www.geckoboard.com/hello-world", strings.NewReader("Some Stuff"))
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	req.Header.Add("X-Some-Header", "Hello World")
 	req.Header.Add("User-Agent", "Awesome User Agent")
 
@@ -783,35 +799,7 @@ func TestRequestRecording(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	find := FindRequest{
-		RequestCriteria: Criteria{
-			{
-				Type:  CriteriaTypeMethod,
-				Value: "POST",
-			},
-			{
-				Type:  CriteriaTypeHeader,
-				Key:   "X-Some-Header",
-				Value: "Hello World",
-			},
-			{
-				Type:      CriteriaTypeHost,
-				Value:     `.*\.geckoboard\.com`,
-				MatchType: MatchTypeRegex,
-			},
-			{
-				Type:  CriteriaTypeBody,
-				Value: "Some Stuff",
-			},
-		},
-	}
-
-	j, err := json.Marshal(find)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	req, err = http.NewRequest("POST", "/requests", bytes.NewReader(j))
+	req, err = http.NewRequest("GET", "/expectations/31/requests", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -820,7 +808,7 @@ func TestRequestRecording(t *testing.T) {
 	server.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
-		t.Errorf("unexpected status code when finding requests %d", rec.Code)
+		t.Errorf("unexpected status code %d when finding requests with id %d", rec.Code, expectations[0].Id)
 	}
 
 	findResponse := FindResponse{}
@@ -843,7 +831,127 @@ func TestRequestRecording(t *testing.T) {
 			},
 		},
 	}) {
-		t.Errorf("unexpected response from requests endpoint: %#v", findResponse)
+		t.Errorf("unexpected response from /expectations/%d/requests endpoint: %#v", expectations[0].Id, findResponse)
+	}
+}
+
+func TestRequestsReturnsNotFoundWhenIdNotExists(t *testing.T) {
+	proxy, proxyServer, _ := buildProxy()
+	defer proxyServer.Close()
+
+	server := &Server{Proxy: proxy}
+	proxy.OnRequest().DoFunc(server.handleProxyRequest)
+
+	req, err := http.NewRequest("GET", "/expectations/1293/requests", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("unexpected status code %d with request id that doesn't exist", rec.Code)
+	}
+}
+
+func TestRequestReturnsEmptyArrayWithNoMatchingRequests(t *testing.T) {
+	proxy, proxyServer, proxyClient := buildProxy()
+	defer proxyServer.Close()
+
+	server := &Server{Proxy: proxy}
+	proxy.OnRequest().DoFunc(server.handleProxyRequest)
+
+	//Setup an expectation that isn't going to match
+	expectations := []Expectation{
+		{
+			Id: 32,
+			StoreMatchingRequests: true,
+			RequestCriteria: Criteria{
+				{
+					Type:  CriteriaTypeHost,
+					Value: "www.google.com",
+				},
+			},
+			RespondWith: RespondWith{
+				Status:       http.StatusOK,
+				Body:         "Its me!!!",
+				BodyEncoding: BodyEncodingNone,
+			},
+		},
+	}
+
+	cer := CreateExpectationsRequest{expectations}
+	createExpectations(t, server, &cer)
+
+	req, err := http.NewRequest("GET", "http://www.geckoboard.com/hello-world", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = proxyClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req, err = http.NewRequest("GET", "/expectations/32/requests", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("unexpected status code %d with expectation id %d", rec.Code, expectations[0].Id)
+	}
+
+	if rec.Body.String() != `{"requests":[]}` {
+		t.Errorf("unexpected response from /expectations/%d/requests endpoint: '%s'", expectations[0].Id, rec.Body.String())
+	}
+}
+
+func TestExpecatationWithoutIdWhenStoreRequestFails(t *testing.T) {
+	proxy, proxyServer, _ := buildProxy()
+	defer proxyServer.Close()
+
+	server := &Server{Proxy: proxy}
+	proxy.OnRequest().DoFunc(server.handleProxyRequest)
+
+	expectations := []Expectation{
+		{
+			StoreMatchingRequests: true,
+			RequestCriteria: Criteria{
+				{
+					Type:  CriteriaTypeMethod,
+					Value: "GET",
+				},
+			},
+		},
+	}
+
+	cer := CreateExpectationsRequest{expectations}
+	json, err := json.Marshal(cer)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req, err := http.NewRequest("POST", "/expectations", bytes.NewReader(json))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+
+	if rec.Code != StatusUnprocessable {
+		t.Fatalf("Expected status code %d but got %d when creating an expecation without an id", StatusUnprocessable, rec.Code)
+	}
+
+	expBody := "everdeen: " + ExpectationInvalidMsg + "\n"
+	if rec.Body.String() != expBody {
+		t.Fatalf("Expected body '%s' but got '%s'", expBody, rec.Body.String())
 	}
 }
 
@@ -866,4 +974,24 @@ func buildWebsiteServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Got Through")
 	}))
+}
+
+func createExpectations(t *testing.T, server *Server, cer *CreateExpectationsRequest) {
+	json, err := json.Marshal(cer)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req, err := http.NewRequest("POST", "/expectations", bytes.NewReader(json))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("Unexpected status code [ %d ] while setting up expectations", rec.Code)
+	}
 }

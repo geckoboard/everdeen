@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,12 +16,6 @@ import (
 func (s *Server) handleProxyRequest(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-
-	if s.storeRequests {
-		if err := s.requests.Save(r); err != nil {
-			return r, goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusBadGateway, fmt.Sprintf("everdeen: %s", err))
-		}
-	}
 
 	expectation, err := s.findMatchingExpectation(r)
 	if err != nil {
@@ -50,6 +45,11 @@ func (s *Server) findMatchingExpectation(r *http.Request) (*Expectation, error) 
 		}
 
 		if match {
+			if e.StoreMatchingRequests {
+				if err := s.requestStore.Save(e.Id, r); err != nil {
+					return nil, errors.New(fmt.Sprintf("everdeen: %s", err))
+				}
+			}
 			return e, nil
 		}
 	}

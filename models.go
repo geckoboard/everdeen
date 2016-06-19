@@ -39,10 +39,12 @@ type Request struct {
 }
 
 type Expectation struct {
-	RequestCriteria Criteria    `json:"request_criteria"`
-	RespondWith     RespondWith `json:"respond_with"`
-	MaxMatches      int         `json:"max_matches"`
-	PassThrough     bool        `json:"pass_through"`
+	RequestCriteria       Criteria    `json:"request_criteria"`
+	RespondWith           RespondWith `json:"respond_with"`
+	MaxMatches            int         `json:"max_matches"`
+	PassThrough           bool        `json:"pass_through"`
+	StoreMatchingRequests bool        `json:"store_matching_requests"`
+	Id                    int         `json:"id"`
 
 	Matches int `json:"matches"`
 	mutex   sync.RWMutex
