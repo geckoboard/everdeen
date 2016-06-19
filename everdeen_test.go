@@ -946,12 +946,60 @@ func TestExpecatationWithoutIdWhenStoreRequestFails(t *testing.T) {
 	server.ServeHTTP(rec, req)
 
 	if rec.Code != StatusUnprocessable {
-		t.Fatalf("Expected status code %d but got %d when creating an expecation without an id", StatusUnprocessable, rec.Code)
+		t.Fatalf("Expected status code %d but got %d when creating an expectation without an id", StatusUnprocessable, rec.Code)
 	}
 
 	expBody := "everdeen: " + ExpectationInvalidMsg + "\n"
 	if rec.Body.String() != expBody {
 		t.Fatalf("Expected body '%s' but got '%s'", expBody, rec.Body.String())
+	}
+}
+
+func TestExpectationIdRequestUnique(t *testing.T) {
+	proxy, proxyServer, _ := buildProxy()
+	defer proxyServer.Close()
+
+	server := &Server{Proxy: proxy}
+	proxy.OnRequest().DoFunc(server.handleProxyRequest)
+
+	expectations := []Expectation{
+		{
+			Id: 13,
+			StoreMatchingRequests: true,
+			RequestCriteria: Criteria{
+				{
+					Type:  CriteriaTypeMethod,
+					Value: "GET",
+				},
+			},
+		},
+	}
+
+	//This creates the first expectation
+	cer := CreateExpectationsRequest{expectations}
+	createExpectations(t, server, &cer)
+
+	//Post the same expectation id which this one should error
+	json, err := json.Marshal(cer)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req, err := http.NewRequest("POST", "/expectations", bytes.NewReader(json))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+
+	if rec.Code != StatusUnprocessable {
+		t.Errorf("Expected status code %d but got %d when creating an expectation with duplicate id", StatusUnprocessable, rec.Code)
+	}
+
+	expBody := "everdeen: " + ExpectationExistsMsg + "\n"
+	if rec.Body.String() != expBody {
+		t.Errorf("unexpected body response for duplicate expectation id got: %s", rec.Body.String())
 	}
 }
 

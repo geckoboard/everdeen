@@ -30,6 +30,7 @@ type Server struct {
 const (
 	StatusUnprocessable   int    = 422
 	ExpectationInvalidMsg string = "Expectation requires an id when used with store requests"
+	ExpectationExistsMsg  string = "Expectation with that id already exists"
 )
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -127,18 +128,24 @@ func (s *Server) createExpectations(w http.ResponseWriter, r *http.Request) {
 
 	s.mutex.Lock()
 
-	//Instead of appending some fail immediately on first error
 	for _, expectation := range expectations {
-		if expectation.StoreMatchingRequests && expectation.Id == 0 {
-			http.Error(w, fmt.Sprintf("everdeen: %s", ExpectationInvalidMsg), StatusUnprocessable)
-			log.Printf("ERROR: %v", ExpectationInvalidMsg)
-			return
+		if expectation.StoreMatchingRequests {
+			if expectation.Id == 0 {
+				http.Error(w, fmt.Sprintf("everdeen: %s", ExpectationInvalidMsg), StatusUnprocessable)
+				log.Printf("ERROR: %v", ExpectationInvalidMsg)
+				return
+			} else {
+				//Check if the expectation is already registered with same id
+				if s.findExpectationById(expectation.Id) != nil {
+					http.Error(w, fmt.Sprintf("everdeen: %s", ExpectationExistsMsg), StatusUnprocessable)
+					log.Printf("ERROR: %v", ExpectationExistsMsg)
+					return
+				}
+			}
 		}
-	}
-
-	for _, expectation := range expectations {
 		s.expectations = append(s.expectations, expectation)
 	}
+
 	s.mutex.Unlock()
 }
 
