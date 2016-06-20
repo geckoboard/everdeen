@@ -21,15 +21,15 @@ module Everdeen
     end
 
     def create_expectations(expectations)
-      client.create_expectations(expectations)
+      client.create_expectations(expectations).collect { |exp| Expectation.new(exp) }
     end
 
     def registered_expectations
       client.registered_expectations
     end
 
-    def requests(request_criteria)
-      client.requests(request_criteria)['requests'].collect{ |req| Request.new(req) }
+    def requests(expectation_id)
+      client.requests(expectation_id)['requests'].collect { |req| Request.new(req) }
     end
 
     def stop

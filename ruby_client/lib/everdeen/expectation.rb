@@ -1,21 +1,28 @@
 module Everdeen
   class Expectation
-    attr_reader :max_matches, :response, :request_criteria
+    attr_reader :uuid, :max_matches, :response, :request_criteria
 
     def initialize(args = {})
-      @max_matches = args[:max_matches]
-      @pass_through = args[:pass_through]
+      args.each do |key, value|
+        next if ['response', 'request_criteria'].include?(key.to_s)
+        instance_variable_set("@#{key}", value)
+      end
 
-      add_response(args[:response])
-      add_request(args[:request_criteria])
+      add_response(args[:response] || args['response'])
+      add_request(args[:request_criteria] || args['request_criteria'])
     end
 
     def pass_through
       !!@pass_through
     end
 
+    def store_matching_requests
+      !!@store_matching_requests
+    end
+
     def to_hash
       {
+        store_matching_requests: store_matching_requests,
         max_matches: max_matches,
         pass_through: pass_through,
         request_criteria: request_criteria.to_hash,
