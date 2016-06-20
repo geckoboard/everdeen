@@ -90,7 +90,7 @@ func (s *Server) findRequests(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
 		return
 	} else {
-		b, _ := json.Marshal(FindResponse{Requests: found})
+		b, err := json.Marshal(FindResponse{Requests: found})
 
 		if err != nil {
 			http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)

@@ -26,7 +26,7 @@ func (rs *RequestStore) Save(expId int, r *http.Request) error {
 
 	//Ensure directories exist
 	expPath := path.Join(*requestBaseStore, strconv.Itoa(expId))
-	newFileName := strconv.Itoa(rs.requestCount) + ".request"
+	newFileName := strconv.Itoa(rs.requestCount) + ".json"
 	os.MkdirAll(expPath, 0744)
 
 	var b []byte
