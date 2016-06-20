@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/satori/go.uuid"
 	"gopkg.in/elazarl/goproxy.v1"
 )
 
@@ -749,7 +750,7 @@ func runTestCase(t *testing.T, i int, tc testCase) {
 	}
 }
 
-func TestRequestMatchingExpectationId(t *testing.T) {
+func TestRequestMatchingExpectationUuid(t *testing.T) {
 	proxy, proxyServer, proxyClient := buildProxy()
 	defer proxyServer.Close()
 
@@ -759,7 +760,6 @@ func TestRequestMatchingExpectationId(t *testing.T) {
 	//Setup an expectation
 	expectations := []Expectation{
 		{
-			Id: 31,
 			StoreMatchingRequests: true,
 			RequestCriteria: Criteria{
 				{
@@ -784,7 +784,11 @@ func TestRequestMatchingExpectationId(t *testing.T) {
 	}
 
 	cer := CreateExpectationsRequest{expectations}
-	createExpectations(t, server, &cer)
+	exp := createExpectations(t, server, &cer)
+
+	if uuid.Equal(exp[0].Uuid, uuid.Nil) {
+		t.Fatalf("Expected returned expectation to have uuid but it didn't: %#v", exp[0])
+	}
 
 	req, err := http.NewRequest("POST", "http://www.geckoboard.com/hello-world", strings.NewReader("Some Stuff"))
 	if err != nil {
@@ -799,7 +803,7 @@ func TestRequestMatchingExpectationId(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req, err = http.NewRequest("GET", "/expectations/31/requests", nil)
+	req, err = http.NewRequest("GET", "/expectations/"+exp[0].Uuid.String()+"/requests", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -808,7 +812,7 @@ func TestRequestMatchingExpectationId(t *testing.T) {
 	server.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
-		t.Errorf("unexpected status code %d when finding requests with id %d", rec.Code, expectations[0].Id)
+		t.Errorf("unexpected status code %d when finding requests with uuid %s", rec.Code, exp[0].Uuid)
 	}
 
 	findResponse := FindResponse{}
@@ -831,11 +835,11 @@ func TestRequestMatchingExpectationId(t *testing.T) {
 			},
 		},
 	}) {
-		t.Errorf("unexpected response from /expectations/%d/requests endpoint: %#v", expectations[0].Id, findResponse)
+		t.Errorf("unexpected response from /expectations/%s/requests endpoint: %#v", expectations[0].Uuid, findResponse)
 	}
 }
 
-func TestRequestsReturnsNotFoundWhenIdNotExists(t *testing.T) {
+func TestRequestsReturnsNotFoundWhenUuidNotExists(t *testing.T) {
 	proxy, proxyServer, _ := buildProxy()
 	defer proxyServer.Close()
 
@@ -865,7 +869,6 @@ func TestRequestReturnsEmptyArrayWithNoMatchingRequests(t *testing.T) {
 	//Setup an expectation that isn't going to match
 	expectations := []Expectation{
 		{
-			Id: 32,
 			StoreMatchingRequests: true,
 			RequestCriteria: Criteria{
 				{
@@ -882,7 +885,11 @@ func TestRequestReturnsEmptyArrayWithNoMatchingRequests(t *testing.T) {
 	}
 
 	cer := CreateExpectationsRequest{expectations}
-	createExpectations(t, server, &cer)
+	exp := createExpectations(t, server, &cer)
+
+	if uuid.Equal(exp[0].Uuid, uuid.Nil) {
+		t.Fatalf("Expected exp returned to have uuid but it did not %s", exp[0].Uuid)
+	}
 
 	req, err := http.NewRequest("GET", "http://www.geckoboard.com/hello-world", nil)
 	if err != nil {
@@ -894,7 +901,7 @@ func TestRequestReturnsEmptyArrayWithNoMatchingRequests(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req, err = http.NewRequest("GET", "/expectations/32/requests", nil)
+	req, err = http.NewRequest("GET", "/expectations/"+exp[0].Uuid.String()+"/requests", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -903,103 +910,11 @@ func TestRequestReturnsEmptyArrayWithNoMatchingRequests(t *testing.T) {
 	server.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
-		t.Errorf("unexpected status code %d with expectation id %d", rec.Code, expectations[0].Id)
+		t.Errorf("unexpected status code %d with expectation uuid %s", rec.Code, exp[0].Uuid)
 	}
 
 	if rec.Body.String() != `{"requests":[]}` {
-		t.Errorf("unexpected response from /expectations/%d/requests endpoint: '%s'", expectations[0].Id, rec.Body.String())
-	}
-}
-
-func TestExpecatationWithoutIdWhenStoreRequestFails(t *testing.T) {
-	proxy, proxyServer, _ := buildProxy()
-	defer proxyServer.Close()
-
-	server := &Server{Proxy: proxy}
-	proxy.OnRequest().DoFunc(server.handleProxyRequest)
-
-	expectations := []Expectation{
-		{
-			StoreMatchingRequests: true,
-			RequestCriteria: Criteria{
-				{
-					Type:  CriteriaTypeMethod,
-					Value: "GET",
-				},
-			},
-		},
-	}
-
-	cer := CreateExpectationsRequest{expectations}
-	json, err := json.Marshal(cer)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	req, err := http.NewRequest("POST", "/expectations", bytes.NewReader(json))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rec := httptest.NewRecorder()
-	server.ServeHTTP(rec, req)
-
-	if rec.Code != StatusUnprocessable {
-		t.Fatalf("Expected status code %d but got %d when creating an expectation without an id", StatusUnprocessable, rec.Code)
-	}
-
-	expBody := "everdeen: " + ExpectationInvalidMsg + "\n"
-	if rec.Body.String() != expBody {
-		t.Fatalf("Expected body '%s' but got '%s'", expBody, rec.Body.String())
-	}
-}
-
-func TestExpectationIdRequestUnique(t *testing.T) {
-	proxy, proxyServer, _ := buildProxy()
-	defer proxyServer.Close()
-
-	server := &Server{Proxy: proxy}
-	proxy.OnRequest().DoFunc(server.handleProxyRequest)
-
-	expectations := []Expectation{
-		{
-			Id: 13,
-			StoreMatchingRequests: true,
-			RequestCriteria: Criteria{
-				{
-					Type:  CriteriaTypeMethod,
-					Value: "GET",
-				},
-			},
-		},
-	}
-
-	//This creates the first expectation
-	cer := CreateExpectationsRequest{expectations}
-	createExpectations(t, server, &cer)
-
-	//Post the same expectation id which this one should error
-	json, err := json.Marshal(cer)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	req, err := http.NewRequest("POST", "/expectations", bytes.NewReader(json))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rec := httptest.NewRecorder()
-	server.ServeHTTP(rec, req)
-
-	if rec.Code != StatusUnprocessable {
-		t.Errorf("Expected status code %d but got %d when creating an expectation with duplicate id", StatusUnprocessable, rec.Code)
-	}
-
-	expBody := "everdeen: " + ExpectationExistsMsg + "\n"
-	if rec.Body.String() != expBody {
-		t.Errorf("unexpected body response for duplicate expectation id got: %s", rec.Body.String())
+		t.Errorf("unexpected response from /expectations/%s/requests endpoint: '%s'", exp[0].Uuid, rec.Body.String())
 	}
 }
 
@@ -1024,14 +939,14 @@ func buildWebsiteServer() *httptest.Server {
 	}))
 }
 
-func createExpectations(t *testing.T, server *Server, cer *CreateExpectationsRequest) {
-	json, err := json.Marshal(cer)
+func createExpectations(t *testing.T, server *Server, cer *CreateExpectationsRequest) []*Expectation {
+	data, err := json.Marshal(cer)
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	req, err := http.NewRequest("POST", "/expectations", bytes.NewReader(json))
+	req, err := http.NewRequest("POST", "/expectations", bytes.NewReader(data))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1042,4 +957,13 @@ func createExpectations(t *testing.T, server *Server, cer *CreateExpectationsReq
 	if rec.Code != http.StatusOK {
 		t.Fatalf("Unexpected status code [ %d ] while setting up expectations", rec.Code)
 	}
+
+	var expectations []*Expectation
+	err = json.Unmarshal(rec.Body.Bytes(), &expectations)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return expectations
 }

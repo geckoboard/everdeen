@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"regexp"
 	"sync"
+
+	"github.com/satori/go.uuid"
 )
 
 type CriteriaType string
@@ -44,7 +46,7 @@ type Expectation struct {
 	MaxMatches            int         `json:"max_matches"`
 	PassThrough           bool        `json:"pass_through"`
 	StoreMatchingRequests bool        `json:"store_matching_requests"`
-	Id                    int         `json:"id"`
+	Uuid                  uuid.UUID   `json:"uuid"`
 
 	Matches int `json:"matches"`
 	mutex   sync.RWMutex

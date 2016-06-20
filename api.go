@@ -3,12 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"gopkg.in/elazarl/goproxy.v1"
 	"log"
 	"net/http"
 	"regexp"
-	"strconv"
+	"strings"
 	"sync"
+
+	"github.com/satori/go.uuid"
+	"gopkg.in/elazarl/goproxy.v1"
 )
 
 type CreateExpectationsRequest struct {
@@ -34,7 +36,7 @@ const (
 )
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	regExp := regexp.MustCompile("/expectations/\\d+/requests")
+	regExp := regexp.MustCompile("/expectations/[a-f0-9-]+/requests")
 
 	if r.Method == "GET" && regExp.MatchString(r.URL.Path) {
 		s.findRequests(w, r)
@@ -72,21 +74,20 @@ func (s *Server) findRequests(w http.ResponseWriter, r *http.Request) {
 	s.requestStore.mutex.RLock()
 	defer s.requestStore.mutex.RUnlock()
 
-	regExp := regexp.MustCompile("\\d+")
-	expId, err := strconv.Atoi(regExp.FindString(r.URL.Path))
+	expUuid, err := uuid.FromString(strings.Split(r.URL.Path, "/")[2])
 
-	if err != nil {
+	if uuid.Equal(expUuid, uuid.Nil) || err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	exp := s.findExpectationById(expId)
+	exp := s.findExpectationByUuid(expUuid)
 	if exp == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	if found, err := s.requestStore.Where(exp.Id); err != nil {
+	if found, err := s.requestStore.Where(exp.Uuid); err != nil {
 		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
 		return
 	} else {
@@ -129,24 +130,21 @@ func (s *Server) createExpectations(w http.ResponseWriter, r *http.Request) {
 	s.mutex.Lock()
 
 	for _, expectation := range expectations {
-		if expectation.StoreMatchingRequests {
-			if expectation.Id == 0 {
-				http.Error(w, fmt.Sprintf("everdeen: %s", ExpectationInvalidMsg), StatusUnprocessable)
-				log.Printf("ERROR: %v", ExpectationInvalidMsg)
-				return
-			} else {
-				//Check if the expectation is already registered with same id
-				if s.findExpectationById(expectation.Id) != nil {
-					http.Error(w, fmt.Sprintf("everdeen: %s", ExpectationExistsMsg), StatusUnprocessable)
-					log.Printf("ERROR: %v", ExpectationExistsMsg)
-					return
-				}
-			}
-		}
+		//User shouldn't be setting and is handled by server
+		expectation.Uuid = uuid.NewV4()
 		s.expectations = append(s.expectations, expectation)
 	}
 
 	s.mutex.Unlock()
+
+	data, err := json.Marshal(expectations)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
+		log.Printf("ERROR: %v", err)
+	} else {
+		fmt.Fprintf(w, "%s", data)
+	}
 }
 
 func prepareExpectations(request CreateExpectationsRequest) ([]*Expectation, error) {

@@ -46,7 +46,7 @@ func (s *Server) findMatchingExpectation(r *http.Request) (*Expectation, error) 
 
 		if match {
 			if e.StoreMatchingRequests {
-				if err := s.requestStore.Save(e.Id, r); err != nil {
+				if err := s.requestStore.Save(e.Uuid, r); err != nil {
 					return nil, errors.New(fmt.Sprintf("everdeen: %s", err))
 				}
 			}

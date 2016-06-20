@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+
+	"github.com/satori/go.uuid"
 )
 
 type RequestStore struct {
@@ -18,14 +20,14 @@ type RequestStore struct {
 	mutex        sync.RWMutex
 }
 
-func (rs *RequestStore) Save(expId int, r *http.Request) error {
+func (rs *RequestStore) Save(expUuid uuid.UUID, r *http.Request) error {
 	rs.mutex.Lock()
 	defer rs.mutex.Unlock()
 
 	rs.requestCount += 1
 
 	//Ensure directories exist
-	expPath := path.Join(*requestBaseStore, strconv.Itoa(expId))
+	expPath := path.Join(*requestBaseStore, expUuid.String())
 	newFileName := strconv.Itoa(rs.requestCount) + ".json"
 	os.MkdirAll(expPath, 0744)
 
@@ -62,13 +64,13 @@ func (rs *RequestStore) Save(expId int, r *http.Request) error {
 	return nil
 }
 
-func (rs *RequestStore) Where(expectationId int) ([]Request, error) {
+func (rs *RequestStore) Where(expUuid uuid.UUID) ([]Request, error) {
 	rs.mutex.RLock()
 	defer rs.mutex.RUnlock()
 
 	found := []Request{}
 
-	basePath := path.Join(*requestBaseStore, strconv.Itoa(expectationId))
+	basePath := path.Join(*requestBaseStore, expUuid.String())
 	files, err := ioutil.ReadDir(basePath)
 	if err != nil {
 		// If the expectation directory doesn't exist should return empty array
@@ -94,9 +96,9 @@ func (rs *RequestStore) Where(expectationId int) ([]Request, error) {
 	return found, nil
 }
 
-func (s *Server) findExpectationById(id int) *Expectation {
+func (s *Server) findExpectationByUuid(expUuid uuid.UUID) *Expectation {
 	for _, exp := range s.expectations {
-		if exp.Id == id {
+		if uuid.Equal(exp.Uuid, expUuid) {
 			return exp
 		}
 	}

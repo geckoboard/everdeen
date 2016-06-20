@@ -5,10 +5,14 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/satori/go.uuid"
 )
 
 func TestRequestStore(t *testing.T) {
 	store := RequestStore{}
+
+	expUuid := uuid.NewV4()
 
 	buildAndStore := func(method, path string, body string) *http.Request {
 		req, err := http.NewRequest(method, path, strings.NewReader(body))
@@ -16,7 +20,7 @@ func TestRequestStore(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := store.Save(99, req); err != nil {
+		if err := store.Save(expUuid, req); err != nil {
 			t.Fatal(err)
 		}
 
@@ -26,7 +30,7 @@ func TestRequestStore(t *testing.T) {
 	get := buildAndStore("GET", "/path-a", "")
 	post := buildAndStore("POST", "/path-b", "Hello World")
 
-	found, err := store.Where(98)
+	found, err := store.Where(uuid.NewV4())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +39,7 @@ func TestRequestStore(t *testing.T) {
 		t.Errorf("expected 0 requests to be found, but got: %d", found)
 	}
 
-	found, err = store.Where(99)
+	found, err = store.Where(expUuid)
 	if err != nil {
 		t.Fatal(err)
 	}
