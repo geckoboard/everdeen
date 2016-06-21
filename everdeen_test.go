@@ -913,8 +913,8 @@ func TestRequestReturnsEmptyArrayWithNoMatchingRequests(t *testing.T) {
 		t.Errorf("unexpected status code %d with expectation uuid %s", rec.Code, exp[0].Uuid)
 	}
 
-	if rec.Body.String() != `{"requests":[]}` {
-		t.Errorf("unexpected response from /expectations/%s/requests endpoint: '%s'", exp[0].Uuid, rec.Body.String())
+	if strings.TrimRight(rec.Body.String(), `\n\t`) == `{"requests":[]}` {
+		t.Errorf("unexpected response from /expectations/%s/requests endpoint: '%#s'", exp[0].Uuid, rec.Body.String())
 	}
 }
 

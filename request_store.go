@@ -80,13 +80,14 @@ func (rs *RequestStore) Where(expUuid uuid.UUID) ([]Request, error) {
 	for _, file := range files {
 		var data Request
 
-		fBytes, err := ioutil.ReadFile(path.Join(basePath, file.Name()))
+		file, err := os.Open(path.Join(basePath, file.Name()))
 		if err != nil {
 			return nil, err
 		}
 
-		err = json.Unmarshal(fBytes, &data)
-		if err != nil {
+		defer file.Close()
+
+		if err := json.NewDecoder(file).Decode(&data); err != nil {
 			return nil, err
 		}
 

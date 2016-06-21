@@ -29,16 +29,10 @@ type Server struct {
 	requestStore RequestStore
 }
 
-const (
-	StatusUnprocessable   int    = 422
-	ExpectationInvalidMsg string = "Expectation requires an id when used with store requests"
-	ExpectationExistsMsg  string = "Expectation with that id already exists"
-)
+var requestsPathExp = regexp.MustCompile(`/expectations/[a-f0-9\-]+/requests`)
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	regExp := regexp.MustCompile("/expectations/[a-f0-9-]+/requests")
-
-	if r.Method == "GET" && regExp.MatchString(r.URL.Path) {
+	if r.Method == "GET" && requestsPathExp.MatchString(r.URL.Path) {
 		s.findRequests(w, r)
 		return
 	}
@@ -89,16 +83,8 @@ func (s *Server) findRequests(w http.ResponseWriter, r *http.Request) {
 
 	if found, err := s.requestStore.Where(exp.Uuid); err != nil {
 		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
-		return
-	} else {
-		b, err := json.Marshal(FindResponse{Requests: found})
-
-		if err != nil {
-			http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
-			return
-		}
-
-		fmt.Fprintf(w, "%s", b)
+	} else if err := json.NewEncoder(w).Encode(FindResponse{Requests: found}); err != nil {
+		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
 	}
 }
 
@@ -137,13 +123,9 @@ func (s *Server) createExpectations(w http.ResponseWriter, r *http.Request) {
 
 	s.mutex.Unlock()
 
-	data, err := json.Marshal(expectations)
-
-	if err != nil {
+	if err := json.NewEncoder(w).Encode(expectations); err != nil {
 		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
 		log.Printf("ERROR: %v", err)
-	} else {
-		fmt.Fprintf(w, "%s", data)
 	}
 }
 
