@@ -2,26 +2,34 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path"
+	"path/filepath"
+	"strconv"
 	"sync"
+
+	"github.com/satori/go.uuid"
 )
 
-type storedRequest struct {
-	urlString string
-	method    string
-	headers   map[string][]string
-	bodyBytes []byte
-}
-
 type RequestStore struct {
-	requests []storedRequest
-	mutex    sync.RWMutex
+	requestCount int
+	mutex        sync.RWMutex
 }
 
-func (rs *RequestStore) Save(r *http.Request) error {
+func (rs *RequestStore) Save(expUuid uuid.UUID, r *http.Request) error {
 	rs.mutex.Lock()
 	defer rs.mutex.Unlock()
+
+	rs.requestCount += 1
+
+	//Ensure directories exist
+	expPath := path.Join(*requestBaseStore, expUuid.String())
+	newFileName := strconv.Itoa(rs.requestCount) + ".json"
+	os.MkdirAll(expPath, 0744)
 
 	var b []byte
 	var err error
@@ -36,39 +44,65 @@ func (rs *RequestStore) Save(r *http.Request) error {
 		r.Body = ioutil.NopCloser(bytes.NewReader(b))
 	}
 
-	request := storedRequest{
-		urlString: r.URL.String(),
-		method:    r.Method,
-		headers:   r.Header,
-		bodyBytes: b,
+	request := Request{
+		URL:        r.URL.String(),
+		Method:     r.Method,
+		Headers:    r.Header,
+		BodyBase64: base64.StdEncoding.EncodeToString(b),
 	}
 
-	rs.requests = append(rs.requests, request)
+	reqJson, err := json.Marshal(&request)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filepath.Join(expPath, newFileName), reqJson, 0644)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (rs *RequestStore) Where(predicate func(*http.Request) (bool, error)) ([]*http.Request, error) {
+func (rs *RequestStore) Where(expUuid uuid.UUID) ([]Request, error) {
 	rs.mutex.RLock()
 	defer rs.mutex.RUnlock()
 
-	found := []*http.Request{}
+	found := []Request{}
 
-	for _, storedRequest := range rs.requests {
-		req, err := http.NewRequest(storedRequest.method, storedRequest.urlString, bytes.NewReader(storedRequest.bodyBytes))
+	basePath := path.Join(*requestBaseStore, expUuid.String())
+	files, err := ioutil.ReadDir(basePath)
+	if err != nil {
+		// If the expectation directory doesn't exist should return empty array
+		return found, nil
+	}
+
+	for _, file := range files {
+		var data Request
+
+		file, err := os.Open(path.Join(basePath, file.Name()))
 		if err != nil {
 			return nil, err
 		}
-		req.Header = storedRequest.headers
 
-		matched, err := predicate(req)
-		if err != nil {
+		defer file.Close()
+
+		if err := json.NewDecoder(file).Decode(&data); err != nil {
 			return nil, err
 		}
 
-		if matched {
-			found = append(found, req)
-		}
+		found = append(found, data)
 	}
 
 	return found, nil
+}
+
+func (s *Server) findExpectationByUuid(expUuid uuid.UUID) *Expectation {
+	for _, exp := range s.expectations {
+		if uuid.Equal(exp.Uuid, expUuid) {
+			return exp
+		}
+	}
+
+	return nil
 }

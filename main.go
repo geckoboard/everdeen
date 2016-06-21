@@ -5,6 +5,8 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
+	"path"
 	"time"
 
 	"github.com/geckoboard/everdeen/certs"
@@ -13,13 +15,12 @@ import (
 )
 
 var (
-	proxyAddr     = flag.String("proxy-addr", ":4321", "Listen address for the HTTP proxy")
-	controlAddr   = flag.String("control-addr", ":4322", "Listen address for the control API")
-	caCertPath    = flag.String("ca-cert-path", "", "Path to CA certificate file")
-	caKeyPath     = flag.String("ca-key-path", "", "Path to CA private key file")
-	storeRequests = flag.Bool("store-requests", false, "TODO: description")
-
-	generateCA = flag.Bool("generate-ca-cert", false, "Generate CA certificate and private key for MITM")
+	proxyAddr        = flag.String("proxy-addr", ":4321", "Listen address for the HTTP proxy")
+	controlAddr      = flag.String("control-addr", ":4322", "Listen address for the control API")
+	caCertPath       = flag.String("ca-cert-path", "", "Path to CA certificate file")
+	caKeyPath        = flag.String("ca-key-path", "", "Path to CA private key file")
+	requestBaseStore = flag.String("requestBaseStore", path.Join(os.TempDir(), "everdeenStore"), "Base store for matching requests")
+	generateCA       = flag.Bool("generate-ca-cert", false, "Generate CA certificate and private key for MITM")
 )
 
 func main() {
@@ -28,6 +29,11 @@ func main() {
 	if *generateCA {
 		generateCACert()
 	} else {
+		//Delete existing path before starting new proxy
+		if err := os.RemoveAll(*requestBaseStore); err != nil {
+			log.Fatal(err)
+		}
+
 		startProxy()
 	}
 }
@@ -44,9 +50,8 @@ func startProxy() {
 	proxy := goproxy.NewProxyHttpServer()
 
 	server := &Server{
-		Proxy:         proxy,
-		expectations:  []*Expectation{},
-		storeRequests: *storeRequests,
+		Proxy:        proxy,
+		expectations: []*Expectation{},
 	}
 	http.Handle("/", server)
 	go http.ListenAndServe(*controlAddr, nil)

@@ -1,24 +1,20 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 	"sync"
 
+	"github.com/satori/go.uuid"
 	"gopkg.in/elazarl/goproxy.v1"
 )
 
 type CreateExpectationsRequest struct {
 	Expectations []Expectation `json:"expectations"`
-}
-
-type FindRequest struct {
-	RequestCriteria Criteria `json:"request_criteria"`
 }
 
 type FindResponse struct {
@@ -30,12 +26,17 @@ type Server struct {
 
 	expectations []*Expectation
 	mutex        sync.RWMutex
-
-	storeRequests bool
-	requests      RequestStore
+	requestStore RequestStore
 }
 
+var requestsPathExp = regexp.MustCompile(`/expectations/[a-f0-9\-]+/requests`)
+
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" && requestsPathExp.MatchString(r.URL.Path) {
+		s.findRequests(w, r)
+		return
+	}
+
 	switch r.URL.Path {
 	case "/ping":
 		fmt.Fprint(w, "PONG")
@@ -64,48 +65,26 @@ func (s *Server) findRequests(w http.ResponseWriter, r *http.Request) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	s.requests.mutex.RLock()
-	defer s.requests.mutex.RUnlock()
+	s.requestStore.mutex.RLock()
+	defer s.requestStore.mutex.RUnlock()
 
-	var request FindRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
-		log.Printf("ERROR: %v", err)
+	expUuid, err := uuid.FromString(strings.Split(r.URL.Path, "/")[2])
+
+	if uuid.Equal(expUuid, uuid.Nil) || err != nil {
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	prepareCriteria(request.RequestCriteria)
-	found, err := s.requests.Where(request.RequestCriteria.Match)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
-		log.Printf("ERROR: %v", err)
+	exp := s.findExpectationByUuid(expUuid)
+	if exp == nil {
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	response := FindResponse{
-		Requests: make([]Request, len(found)),
-	}
-
-	for idx, req := range found {
-		bytes, err := ioutil.ReadAll(req.Body)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
-			log.Printf("ERROR: %v", err)
-			return
-		}
-		bodyBase64 := base64.StdEncoding.EncodeToString(bytes)
-
-		response.Requests[idx] = Request{
-			URL:        req.URL.String(),
-			Method:     req.Method,
-			Headers:    req.Header,
-			BodyBase64: bodyBase64,
-		}
-	}
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	if found, err := s.requestStore.Where(exp.Uuid); err != nil {
 		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
-		log.Printf("ERROR: %v", err)
+	} else if err := json.NewEncoder(w).Encode(FindResponse{Requests: found}); err != nil {
+		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
 	}
 }
 
@@ -135,10 +114,19 @@ func (s *Server) createExpectations(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.mutex.Lock()
+
 	for _, expectation := range expectations {
+		//User shouldn't be setting and is handled by server
+		expectation.Uuid = uuid.NewV4()
 		s.expectations = append(s.expectations, expectation)
 	}
+
 	s.mutex.Unlock()
+
+	if err := json.NewEncoder(w).Encode(expectations); err != nil {
+		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
+		log.Printf("ERROR: %v", err)
+	}
 }
 
 func prepareExpectations(request CreateExpectationsRequest) ([]*Expectation, error) {
