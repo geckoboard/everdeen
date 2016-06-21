@@ -28,18 +28,30 @@ RSpec.describe Everdeen, type: :integration do
   end
 
   example 'requesting matching processed requests' do
+    expectations = server.create_expectations([
+      Everdeen::Expectation.new(
+        store_matching_requests: true,
+        request_criteria: [
+          {
+            type: 'method',
+            value: "POST"
+          }
+        ],
+
+        response: {
+          status: 200,
+          body: 'Hello World'
+        }
+      )
+    ])
+
     Net::HTTP.new('127.0.0.1', 4321, nil, nil).start do |http|
       request = Net::HTTP::Post.new 'https://example.com/test'
       request.body = "Hello World"
       http.request request
     end
 
-    requests = server.requests(
-      Everdeen::RequestCriteria.new([
-        { type: :host, value: 'example.com' },
-        { type: :path, value: '/test' }
-      ])
-    )
+    requests = server.requests(expectations.first.uuid)
 
     expect(requests.size).to eq 1
     request = requests.first

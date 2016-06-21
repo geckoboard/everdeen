@@ -2,7 +2,7 @@ require 'spec_helper'
 
 module Everdeen
   RSpec.describe Expectation, type: :unit do
-    subject { Expectation.new(max_matches: 3, pass_through: true, request_criteria: [], response: {}) }
+    subject { Expectation.new(store_matching_requests: true, max_matches: 3, pass_through: true, request_criteria: [], response: {}) }
 
     describe '#initialize' do
       let(:expected_response) {{ status: 200, body: 'Hello World', headers: nil, body_encoding: '' }}
@@ -15,6 +15,7 @@ module Everdeen
 
       subject do
         Expectation.new(
+          store_matching_requests: true,
           max_matches: 3,
           pass_through: true,
           request_criteria: [
@@ -27,6 +28,7 @@ module Everdeen
 
       it 'assigns max_matches and pass_through and calls add_re(quest|sponse)' do
         expect(subject.max_matches).to eq 3
+        expect(subject.store_matching_requests).to eq true
         expect(subject.pass_through).to eq true
         expect(subject.response.to_hash).to eq expected_response
         expect(subject.request_criteria.to_hash).to eq expected_request
@@ -42,6 +44,18 @@ module Everdeen
       it 'returns true otherwise disregarding user input' do
         subject = Expectation.new(pass_through: 'not nil or true')
         expect(subject.pass_through).to be_truthy
+      end
+    end
+
+    describe '#store_matching_requests' do
+      it 'defaults to false when nil' do
+        subject = Expectation.new(store_matching_requests: nil)
+        expect(subject.store_matching_requests).to be false
+      end
+
+      it 'returns true otherwise disregarding user input' do
+        subject = Expectation.new(store_matching_requests: 'not nil or true')
+        expect(subject.store_matching_requests).to be_truthy
       end
     end
 
@@ -77,6 +91,7 @@ module Everdeen
 
       it 'returns hash of the response defined attributes' do
         expect(subject.to_hash).to eq(
+          store_matching_requests: true,
           max_matches: 3,
           pass_through: true,
           request_criteria: request.to_hash,

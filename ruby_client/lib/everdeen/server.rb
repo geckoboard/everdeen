@@ -13,7 +13,6 @@ module Everdeen
     def initialize(opts = {})
       @proxy_port     = opts.fetch(:proxy_port)
       @control_port   = opts.fetch(:control_port)
-      @store_requests = opts.fetch(:store_requests, false)
     end
 
     def start
@@ -22,15 +21,15 @@ module Everdeen
     end
 
     def create_expectations(expectations)
-      client.create_expectations(expectations)
+      client.create_expectations(expectations).collect { |exp| Expectation.new(exp) }
     end
 
     def registered_expectations
       client.registered_expectations
     end
 
-    def requests(request_criteria)
-      client.requests(request_criteria)['requests'].collect{ |req| Request.new(req) }
+    def requests(expectation_id)
+      client.requests(expectation_id)['requests'].collect { |req| Request.new(req) }
     end
 
     def stop
@@ -47,8 +46,7 @@ module Everdeen
       @pipe = IO.popen([
         Everdeen.bin_path,
         "-proxy-addr=#{proxy_addr}",
-        "-control-addr=#{control_addr}",
-        "-store-requests=#{store_requests}"
+        "-control-addr=#{control_addr}"
       ])
     end
 
