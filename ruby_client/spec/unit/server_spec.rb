@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 RSpec.describe Everdeen::Server, type: :unit do
-  let(:stderr) { File.new('everdeen.log', "w") }
+  let(:stderr) { double }
   subject { Everdeen::Server.new(proxy_port: 1090, control_port: 1091, store_requests: true, stderr: stderr) }
 
   describe '#initialize' do
