@@ -8,7 +8,7 @@ module Everdeen
       server
     end
 
-    attr_reader :proxy_port, :control_port, :store_requests
+    attr_reader :proxy_port, :control_port
 
     def initialize(opts = {})
       @proxy_port     = opts.fetch(:proxy_port)
@@ -16,8 +16,9 @@ module Everdeen
     end
 
     def start
-      spawn_process
+      pid = spawn_process.pid
       wait_until_ready
+      pid
     end
 
     def create_expectations(expectations)
