@@ -1,3 +1,5 @@
+require 'tempfile'
+
 module Everdeen
   class Server
     StartTimeout = Class.new(StandardError)
@@ -8,11 +10,12 @@ module Everdeen
       server
     end
 
-    attr_reader :proxy_port, :control_port
+    attr_reader :proxy_port, :control_port, :stderr
 
     def initialize(opts = {})
       @proxy_port     = opts.fetch(:proxy_port)
       @control_port   = opts.fetch(:control_port)
+      @stderr         = opts.fetch(:stderr, Tempfile.new("everdeen"))
     end
 
     def start
@@ -48,7 +51,7 @@ module Everdeen
         Everdeen.bin_path,
         "-proxy-addr=#{proxy_addr}",
         "-control-addr=#{control_addr}"
-      ])
+      ], err: stderr)
     end
 
     def wait_until_ready
