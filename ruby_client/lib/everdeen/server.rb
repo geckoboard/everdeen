@@ -10,12 +10,14 @@ module Everdeen
       server
     end
 
-    attr_reader :proxy_port, :control_port, :stderr
+    attr_reader :proxy_port, :control_port, :stderr, :ca_cert_path, :ca_key_path
 
     def initialize(opts = {})
       @proxy_port     = opts.fetch(:proxy_port)
       @control_port   = opts.fetch(:control_port)
       @stderr         = opts.fetch(:stderr, Tempfile.new("everdeen"))
+      @ca_cert_path   = opts.fetch(:ca_cert_path, nil)
+      @ca_key_path    = opts.fetch(:ca_key_path, nil)
     end
 
     def start
@@ -50,7 +52,9 @@ module Everdeen
       @pipe = IO.popen([
         Everdeen.bin_path,
         "-proxy-addr=#{proxy_addr}",
-        "-control-addr=#{control_addr}"
+        "-control-addr=#{control_addr}",
+        "-ca-cert-path=#{ca_cert_path}",
+        "-ca-key-path=#{ca_key_path}"
       ], err: stderr)
     end
 
