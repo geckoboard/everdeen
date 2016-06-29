@@ -15,7 +15,7 @@ module Everdeen
     def initialize(opts = {})
       @proxy_port     = opts.fetch(:proxy_port)
       @control_port   = opts.fetch(:control_port)
-      @stderr         = opts.fetch(:stderr, Tempfile.new("everdeen"))
+      @stderr         = opts.fetch(:stderr) { Tempfile.new("everdeen") }
       @ca_cert_path   = opts.fetch(:ca_cert_path, nil)
       @ca_key_path    = opts.fetch(:ca_key_path, nil)
     end
