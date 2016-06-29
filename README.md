@@ -126,6 +126,116 @@ Everdeen::Expectation.new(
 )
 ```
 
+#### Storing matching requests
+
+Sometimes it is useful to retrieve information about requests that have been handled by the Everdeen proxy,
+one such example in the Geckoboard test suite is a test case where we assert that a request was made
+to a third party API to delete information related to a user when they close their account
+
+Therefore when you want to store a request for future retrieval you can set the store_matching_requests attribute on an expectation.
+
+```ruby
+Everdeen::Expectation.new(
+  store_matching_requests: true
+)
+```
+
+When you make that request to create the expectation it returns all the expectations in the original call with the uuid generated on the server side. This uuid is important as it will be required to retrieve the requests for that expectation.
+
+```json
+[
+    {
+      "uuid": "586dc37e-6421-461a-8302-e57d6cdf9e2e",
+      "store_matching_requests": true,
+      "request_criteria": [
+        ...
+      ],
+      "respond_with": {
+        ...
+      }
+    }
+]
+```
+
+#### Retrieving requests for an expectation
+
+Now that you have registered your expectation you will want to query the requests that have matched for that expectation. So with your expectation uuid you can just do
+
+```ruby
+expectation = server.create_expectations(expectations).first
+requests = server.requests(expectation.uuid)
+```
+
+Details of all requests matching that expectation will be returned. Note that in all cases the body returned for the request will be base64 encoded. This ensures consistenty especially if there are any requests that are binary data.
+
+```json
+{
+    "body_base64": "SGVsbG8gV29ybGQ=",
+    "headers": {
+        "Accept": [
+            "*/*"
+        ],
+        "Accept-Encoding": [
+            "gzip;q=1.0,deflate;q=0.6,identity;q=0.3"
+        ],
+        "Content-Length": [
+            "11"
+        ],
+        "Content-Type": [
+            "application/x-www-form-urlencoded"
+        ],
+        "User-Agent": [
+            "Ruby"
+        ]
+    },
+    "method": "POST",
+    "url": "https://geckoboard.com"
+}
+```
+
+To retrieve the raw body content just decode with base64 but when using the ruby gem calling the body method will return the decoded body content implicitly
+
+```ruby
+requests = server.requests(expectation.uuid)
+requests.first.body
+=> "Hello World"
+```
+
+#### Certificates
+
+Everdeen permits overriding the [goproxy](https://github.com/elazarl/goproxy) certificates. By default it will use the goproxy certificate and will get some warnings. However it is recommended for security reasons to use your own generated cerifications.
+
+##### Generating your certificates
+
+Everdeen supports generating a new set of certificates saved to disk. To do this pass the `generate-ca-cert` to the everdeen server standalone.
+
+```
+$ ./everdeen_0.1.0_linux-amd64 -generate-ca-cert
+```
+
+That will generate a new key.pem and cert.pem - don't forget to install and trust the cert.pem so that when MITM requests come in they are trusted.
+
+##### Using the certificates
+
+Now you have generated the certificates put them in some directory to reference them like the below examples.
+
+Ruby gem
+
+```ruby
+# Passing custom certs
+server = Everdeen::Server.start(
+  ca_cert_path: File.join('/usr','local', 'share','ca-certificates', 'everdeen.crt'),
+  ca_key_path: File.join('/etc','default', 'everdeen_private', 'key.pem')
+)
+
+```
+
+Standalone
+
+```
+$ ./everdeen_0.1.0_linux-amd64 -ca-cert-path="/usr/local/share/ca-certificates/everdeen.crt" ca-key-path="/etc/default/everdeen_private/key.pem"
+```
+
 ## Similar Projects
 
 - [Puffing Billy] (https://github.com/oesmith/puffing-billy)
