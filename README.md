@@ -126,6 +126,125 @@ Everdeen::Expectation.new(
 )
 ```
 
+#### Storing matching requests
+
+Sometimes it is useful to retrieve information about requests that have been handled by the Everdeen proxy,
+one such example in the Geckoboard test suite is a test case where we assert that a request was made
+to a third party API to delete information related to a user when they close their account.
+
+When you want to store a request for future retrieval you can set the `store_matching_requests` attribute on an expectation.
+
+```ruby
+Everdeen::Expectation.new(
+  store_matching_requests: true
+)
+```
+
+When you call the API to create expectations it will return the expectations with UUIDs assigned, these UUIDs are important as they will be used to retrieve the requests matching each expectation.
+
+```json
+[
+    {
+      "uuid": "586dc37e-6421-461a-8302-e57d6cdf9e2e",
+      "store_matching_requests": true,
+      "request_criteria": [
+        ...
+      ],
+      "respond_with": {
+        ...
+      }
+    }
+]
+```
+
+#### Retrieving requests for an expectation
+
+Now that you have registered your expectation you will want to query the requests that have matched that expectation. So with your expectation UUID you can just do
+
+```ruby
+expectation = server.create_expectations(expectations).first
+requests = server.requests(expectation.uuid)
+```
+
+Details of all requests matching that expectation will be returned. Note that in all cases the body returned for the request will be Base64 encoded. This ensures consistency especially if there are any requests that are binary data.
+
+```json
+{
+    "body_base64": "SGVsbG8gV29ybGQ=",
+    "headers": {
+        "Accept": [
+            "*/*"
+        ],
+        "Accept-Encoding": [
+            "gzip;q=1.0,deflate;q=0.6,identity;q=0.3"
+        ],
+        "Content-Length": [
+            "11"
+        ],
+        "Content-Type": [
+            "application/x-www-form-urlencoded"
+        ],
+        "User-Agent": [
+            "Ruby"
+        ]
+    },
+    "method": "POST",
+    "url": "https://geckoboard.com"
+}
+```
+
+To retrieve the raw body content just decode with Base64 but when using the ruby gem calling the `#body` method will return the decoded body content.
+
+```ruby
+requests = server.requests(expectation.uuid)
+requests.first.body
+=> "Hello World"
+```
+
+#### Proxying HTTPS Traffic
+
+Due to the secure nature of TLS; HTTPS requests can't be proxied transparently. To overcome this problem, the Everdeen proxy will act as a [Certificate Authority](https://en.wikipedia.org/wiki/Certificate_authority) and decrypt / re-encrypt traffic using it's own self-signed certificates.
+
+Practically this means that you need to trust the Everdeen proxy's certificate to generate / sign certificates.
+
+By default the Everdeen proxy will use the bundled [goproxy certificate](https://github.com/elazarl/goproxy/blob/52c137b4b19acaf8cde1d9e0579d928519918919/certs.go#L24-L38), which you *could* add to your operating system or browser's trust store but this is **highly** discouraged, due to the fact that the private key is available on the public internet.
+
+##### Generating a certificate
+
+It is recommended that you generate your own certificate / key pair like so:
+
+```
+$ ./everdeen_0.1.0_linux-amd64 -generate-ca-cert
+```
+
+This will generate a `cert.pem` and `key.pem` file in your current working directory.
+
+:warning: Make sure you keep your `key.pem` file safe, as once you trust the `cert.pem` as a Certificate Authority the owner of this file can sign their own certificates and do very nasty things (e.g. pretend to be your bank).
+
+If you're on Ubuntu Linux you can add your newly generated certificate to the trust store like so:
+
+```
+$ sudo cp cert.pem /usr/local/share/ca-certificates/everdeen.crt
+$ sudo update-ca-certificates
+```
+
+##### Using the certificate
+
+Now you have generated the certificate, you must tell the Everdeen proxy to use it:
+
+```ruby
+server = Everdeen::Server.start(
+  ca_cert_path: '/path/to/the/cert.pem'
+  ca_key_path: '/path/to/the/key.pem'
+)
+```
+
+Here's how you would do so if using the standalone binary:
+
+```
+$ ./everdeen_0.1.0_linux-amd64 -ca-cert-path="/path/to/the/cert.pem" ca-key-path="/path/to/the/key.pem"
+```
+
 ## Similar Projects
 
 - [Puffing Billy] (https://github.com/oesmith/puffing-billy)
