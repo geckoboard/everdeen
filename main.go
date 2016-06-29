@@ -19,7 +19,7 @@ var (
 	controlAddr      = flag.String("control-addr", ":4322", "Listen address for the control API")
 	caCertPath       = flag.String("ca-cert-path", "", "Path to CA certificate file")
 	caKeyPath        = flag.String("ca-key-path", "", "Path to CA private key file")
-	requestBaseStore = flag.String("requestBaseStore", path.Join(os.TempDir(), "everdeenStore"), "Base store for matching requests")
+	requestBaseStore = flag.String("request-base-store", path.Join(os.TempDir(), "everdeenStore"), "Base store for matching requests")
 	generateCA       = flag.Bool("generate-ca-cert", false, "Generate CA certificate and private key for MITM")
 )
 
