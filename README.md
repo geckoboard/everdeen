@@ -201,39 +201,48 @@ requests.first.body
 => "Hello World"
 ```
 
-#### Certificates
+#### Proxying HTTPS Traffic
 
-Everdeen permits overriding the [goproxy](https://github.com/elazarl/goproxy) certificates. By default it will use the goproxy certificate and will get some warnings. However it is recommended for security reasons to use your own generated cerifications.
+Due to the secure nature of TLS; HTTPS requests can't be proxied transparently. To overcome this problem, the Everdeen proxy will act as a [Certificate Authority](https://en.wikipedia.org/wiki/Certificate_authority) and decrypt / re-encrypt traffic using it's own self-signed certificates.
 
-##### Generating your certificates
+Practically this means that you need to trust the Everdeen proxy's certificate to generate / sign certificates.
 
-Everdeen supports generating a new set of certificates saved to disk. To do this pass the `generate-ca-cert` to the everdeen server standalone.
+By default the Everdeen proxy will use the bundled [goproxy certificate](https://github.com/elazarl/goproxy/blob/52c137b4b19acaf8cde1d9e0579d928519918919/certs.go#L24-L38), which you *could* add to your operating system or browser's trust store but this is **highly** discouraged, due to the fact that the private key is available on the public internet.
+
+##### Generating a certificate
+
+It is recommended that you generate your own certificate / key pair like so:
 
 ```
 $ ./everdeen_0.1.0_linux-amd64 -generate-ca-cert
 ```
 
-That will generate a new key.pem and cert.pem - don't forget to install and trust the cert.pem so that when MITM requests come in they are trusted.
+This will generate a `cert.pem` and `key.pem` file in your current working directory.
 
-##### Using the certificates
+:warning: Make sure you keep your `key.pem` file safe, as once you trust the `cert.pem` as a Certificate Authority the owner of this file can sign their own certificates and do very nasty things (e.g. pretend to be your bank).
 
-Now you have generated the certificates put them in some directory to reference them like the below examples.
+If you're on Ubuntu Linux you can add your newly generated certificate to the trust store like so:
 
-Ruby gem
+```
+$ sudo cp cert.pem /usr/local/share/ca-certificates/everdeen.crt
+$ sudo update-ca-certificates
+```
+
+##### Using the certificate
+
+Now you have generated the certificate, you must tell the Everdeen proxy to use it:
 
 ```ruby
-# Passing custom certs
 server = Everdeen::Server.start(
-  ca_cert_path: File.join('/usr','local', 'share','ca-certificates', 'everdeen.crt'),
-  ca_key_path: File.join('/etc','default', 'everdeen_private', 'key.pem')
+  ca_cert_path: '/path/to/the/cert.pem'
+  ca_key_path: '/path/to/the/key.pem'
 )
-
 ```
 
-Standalone
+Here's how you would do so if using the standalone binary:
 
 ```
-$ ./everdeen_0.1.0_linux-amd64 -ca-cert-path="/usr/local/share/ca-certificates/everdeen.crt" ca-key-path="/etc/default/everdeen_private/key.pem"
+$ ./everdeen_0.1.0_linux-amd64 -ca-cert-path="/path/to/the/cert.pem" ca-key-path="/path/to/the/key.pem"
 ```
 
 ## Similar Projects
