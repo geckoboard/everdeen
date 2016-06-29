@@ -126,6 +126,16 @@ Everdeen::Expectation.new(
 )
 ```
 
+#### Allowing requests through the proxy
+
+Everdeen can also allow requests through the proxy unaltered, to do so simply set the `pass_through` attribute on your expectation instead of supplying a response:
+
+```ruby
+Everdeen::Expectation.new(
+  pass_through: true
+)
+```
+
 #### Storing matching requests
 
 Sometimes it is useful to retrieve information about requests that have been handled by the Everdeen proxy,
