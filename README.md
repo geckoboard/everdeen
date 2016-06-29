@@ -130,9 +130,9 @@ Everdeen::Expectation.new(
 
 Sometimes it is useful to retrieve information about requests that have been handled by the Everdeen proxy,
 one such example in the Geckoboard test suite is a test case where we assert that a request was made
-to a third party API to delete information related to a user when they close their account
+to a third party API to delete information related to a user when they close their account.
 
-Therefore when you want to store a request for future retrieval you can set the store_matching_requests attribute on an expectation.
+When you want to store a request for future retrieval you can set the `store_matching_requests` attribute on an expectation.
 
 ```ruby
 Everdeen::Expectation.new(
@@ -140,7 +140,7 @@ Everdeen::Expectation.new(
 )
 ```
 
-When you make that request to create the expectation it returns all the expectations in the original call with the uuid generated on the server side. This uuid is important as it will be required to retrieve the requests for that expectation.
+When you call the API to create expectations it will return the expectations with UUIDs assigned, these UUIDs are important as they will be used to retrieve the requests matching each expectation.
 
 ```json
 [
@@ -159,14 +159,14 @@ When you make that request to create the expectation it returns all the expectat
 
 #### Retrieving requests for an expectation
 
-Now that you have registered your expectation you will want to query the requests that have matched for that expectation. So with your expectation uuid you can just do
+Now that you have registered your expectation you will want to query the requests that have matched that expectation. So with your expectation UUID you can just do
 
 ```ruby
 expectation = server.create_expectations(expectations).first
 requests = server.requests(expectation.uuid)
 ```
 
-Details of all requests matching that expectation will be returned. Note that in all cases the body returned for the request will be base64 encoded. This ensures consistenty especially if there are any requests that are binary data.
+Details of all requests matching that expectation will be returned. Note that in all cases the body returned for the request will be Base64 encoded. This ensures consistency especially if there are any requests that are binary data.
 
 ```json
 {
@@ -193,7 +193,7 @@ Details of all requests matching that expectation will be returned. Note that in
 }
 ```
 
-To retrieve the raw body content just decode with base64 but when using the ruby gem calling the body method will return the decoded body content implicitly
+To retrieve the raw body content just decode with Base64 but when using the ruby gem calling the `#body` method will return the decoded body content.
 
 ```ruby
 requests = server.requests(expectation.uuid)
