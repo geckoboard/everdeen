@@ -1,6 +1,7 @@
 NAME=everdeen
 PACKAGE=github.com/geckoboard/$(NAME)
 SERVER_VERSION=0.1.0
+GIT_SHA=$(shell git rev-parse --short HEAD)
 RUBY_BINARIES_DIR=ruby_client/binaries
 BUILD_DIR=build
 
@@ -15,6 +16,8 @@ build: *.go
 	rm -rf $(BUILD_DIR)
 	gox -osarch="linux/386 linux/amd64 darwin/amd64" \
 		-output="$(BUILD_DIR)/$(NAME)_$(SERVER_VERSION)_{{.OS}}-{{.Arch}}" \
+		-ldflags "-X main.Version $(SERVER_VERSION) -X main.GitSHA $(GIT_SHA)" \
+		-verbose \
 		$(PACKAGE)
 
 gem: build

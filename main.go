@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +13,12 @@ import (
 	"github.com/geckoboard/everdeen/certs"
 
 	"gopkg.in/elazarl/goproxy.v1"
+)
+
+// Injected by the Makefile
+var (
+	Version = ""
+	GitSHA  = ""
 )
 
 var (
@@ -39,12 +46,21 @@ func main() {
 }
 
 func startProxy() {
+	fmt.Println("Starting everdeen proxy...")
+	fmt.Printf("Version: %s (git sha: %s)\n", Version, GitSHA)
+	fmt.Printf("Proxy Address: %s\n", *proxyAddr)
+	fmt.Printf("Control Address: %s\n", *controlAddr)
+
 	if *caCertPath != "" && *caKeyPath != "" {
 		tlsc, err := tls.LoadX509KeyPair(*caCertPath, *caKeyPath)
 		if err != nil {
 			log.Fatal(err)
 		}
 		goproxy.GoproxyCa = tlsc
+		fmt.Printf("CA Certificate: %s\n", *caCertPath)
+		fmt.Printf("CA Key: %s\n", *caKeyPath)
+	} else {
+		fmt.Fprintln(os.Stderr, "WARNING: Using default goproxy CA certificate to sign hijacked HTTPS traffic, consider generating your own certificate & key pair!")
 	}
 
 	proxy := goproxy.NewProxyHttpServer()
