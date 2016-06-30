@@ -1,9 +1,10 @@
 # Everdeen
 
-Everdeen is an HTTP proxy server for mocking outgoing traffic.
-She's controllable via a simple HTTP API (or a [Ruby Gem](https://rubygems.org/gems/everdeen)), has a small memory footprint, and boots in under a second.
+Everdeen is an HTTP proxy server for mocking outgoing traffic during integration tests.
 
-Everdeen gets her name from [Katniss Everdeen](https://en.wikipedia.org/wiki/Katniss_Everdeen), the "**Mocking**-jay" of the Hunger Games trilogy. :books:
+It's controllable via a simple HTTP API (or a [Ruby Gem](https://rubygems.org/gems/everdeen)), has a small memory footprint, and boots in under a second.
+
+Everdeen gets its name from [Katniss Everdeen](https://en.wikipedia.org/wiki/Katniss_Everdeen), the "**Mocking**-jay" of the Hunger Games trilogy. :books:
 
 ## Usage
 
