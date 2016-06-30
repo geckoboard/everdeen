@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/geckoboard/everdeen/certs"
-
 	"gopkg.in/elazarl/goproxy.v1"
 )
 

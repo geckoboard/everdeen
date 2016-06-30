@@ -28,9 +28,8 @@ import (
 	"encoding/pem"
 	"math/big"
 	"net"
-	"time"
-
 	"os"
+	"time"
 )
 
 // MaxSerialNumber - nothing very original, big number
