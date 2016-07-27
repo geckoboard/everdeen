@@ -137,6 +137,8 @@ func (s *Server) createExpectations(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
 		log.Printf("ERROR: %v", err)
 	}
+
+	logExpectationRequest(expectations)
 }
 
 func prepareExpectations(request CreateExpectationsRequest) ([]*Expectation, error) {
