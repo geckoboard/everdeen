@@ -212,6 +212,22 @@ requests.first.body
 => "Hello World"
 ```
 
+#### Resetting all expectations
+
+In cases where you need to reset all registered expectations and stored request stores to its
+initial clean state, you can use the reset\_all endpoint making a `DELETE` request to the
+control-addr endpoint.
+
+```
+curl localhost:4322/reset_all -XDELETE
+OK
+```
+
+```ruby
+server = Everdeen::Server.new(...)
+server.reset_all
+```
+
 #### Proxying HTTPS Traffic
 
 Due to the secure nature of TLS; HTTPS requests can't be proxied transparently. To overcome this problem, the Everdeen proxy will act as a [Certificate Authority](https://en.wikipedia.org/wiki/Certificate_authority) and decrypt / re-encrypt traffic using it's own self-signed certificates.
