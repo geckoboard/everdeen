@@ -38,6 +38,10 @@ module Everdeen
       client.requests(expectation_id)['requests'].collect { |req| Request.new(req) }
     end
 
+    def reset_all
+      client.reset_all
+    end
+
     def stop
       Process.kill(:INT, @pipe.pid)
     end
