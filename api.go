@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -53,9 +55,17 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "/requests":
 		if r.Method != "POST" {
 			http.Error(w, "everdeen: Method Not Allowed", http.StatusMethodNotAllowed)
+			return
 		}
 
 		s.findRequests(w, r)
+	case "/reset_all":
+		if r.Method != "DELETE" {
+			http.Error(w, "everdeen: Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		s.resetAll(w, r)
 	default:
 		http.Error(w, "everdeen: Not Found", http.StatusNotFound)
 	}
@@ -162,4 +172,23 @@ func prepareCriteria(c Criteria) error {
 	}
 
 	return nil
+}
+
+func (s *Server) resetAll(w http.ResponseWriter, r *http.Request) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	s.expectations = nil
+
+	// Re-initialize so the response to list expectations is not null
+	s.expectations = make([]*Expectation, 0, 0)
+
+	// Ensure to delete the directory of request stores
+	if err := os.RemoveAll(*requestBaseStore); err != nil {
+		log.Printf("Error deleting the request store directory %s", err)
+		http.Error(w, fmt.Sprintf("everdeen: %s", err), http.StatusInternalServerError)
+		return
+	}
+
+	io.WriteString(w, "OK")
 }
