@@ -28,22 +28,7 @@ RSpec.describe Everdeen, type: :integration do
   end
 
   example 'requesting matching processed requests' do
-    expectations = server.create_expectations([
-      Everdeen::Expectation.new(
-        store_matching_requests: true,
-        request_criteria: [
-          {
-            type: 'method',
-            value: "POST"
-          }
-        ],
-
-        response: {
-          status: 200,
-          body: 'Hello World'
-        }
-      )
-    ])
+    expectations = create_expectations
 
     Net::HTTP.new('127.0.0.1', 4321, nil, nil).start do |http|
       request = Net::HTTP::Post.new 'https://example.com/test'
@@ -69,11 +54,42 @@ RSpec.describe Everdeen, type: :integration do
     expect(request.body_base64).to eq "SGVsbG8gV29ybGQ="
   end
 
+  example 'resetting all expectations' do
+    create_expectations
+
+    requests = server.registered_expectations
+    expect(requests.size).to eq 1
+
+    server.reset_all
+
+    requests = server.registered_expectations
+    expect(requests.size).to eq 0
+  end
+
   def start_server
     Everdeen::Server.start(
       proxy_port: 4321,
       control_port: 4322,
       store_requests: true
     )
+  end
+
+  def create_expectations
+    server.create_expectations([
+      Everdeen::Expectation.new(
+        store_matching_requests: true,
+        request_criteria: [
+          {
+            type: 'method',
+            value: "POST"
+          }
+        ],
+
+        response: {
+          status: 200,
+          body: 'Hello World'
+        }
+      )
+    ])
   end
 end

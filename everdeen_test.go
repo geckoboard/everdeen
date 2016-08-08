@@ -967,3 +967,65 @@ func createExpectations(t *testing.T, server *Server, cer *CreateExpectationsReq
 
 	return expectations
 }
+
+func TestResetAllEndpointRequest(t *testing.T) {
+	proxy, proxyServer, _ := buildProxy()
+	defer proxyServer.Close()
+
+	server := &Server{Proxy: proxy}
+	proxy.OnRequest().DoFunc(server.handleProxyRequest)
+
+	expectations := []Expectation{
+		{
+			RequestCriteria: Criteria{
+				{
+					Type:  CriteriaTypeHost,
+					Value: "www.google.com",
+				},
+			},
+		},
+	}
+
+	cer := CreateExpectationsRequest{expectations}
+	createExpectations(t, server, &cer)
+
+	// Check that one expectation exists
+	exps := listsExpectationsResponse(t, server)
+	if len(exps) != 1 {
+		t.Errorf("Expected one expectation to be returned but got %d", len(exps))
+	}
+
+	// Now post to the reset_all endpoint
+	req, err := http.NewRequest("DELETE", "/reset/all", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+
+	if rec.Code != 200 {
+		t.Errorf("Expected 200 response code to /reset_all but got %d", rec.Code)
+	}
+
+	// Now query the expectations endpoint and verify none exist
+	exps = listsExpectationsResponse(t, server)
+	if len(exps) != 0 {
+		t.Errorf("Expected no expectations to be returned but got %d", len(exps))
+	}
+}
+
+func listsExpectationsResponse(t *testing.T, server *Server) []*Expectation {
+	req, err := http.NewRequest("GET", "/expectations", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+
+	var exps []*Expectation
+	json.Unmarshal(rec.Body.Bytes(), &exps)
+
+	return exps
+}
