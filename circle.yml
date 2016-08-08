@@ -1,3 +1,8 @@
+machine:
+  environment:
+    PATH: ~/.local/bin:$PATH
+  ruby:
+    version: 2.1.5
 dependencies:
   override:
     - rvm use 2.1.5@deployment-tooling --create && echo "deployment-tooling" > .ruby-gemset
