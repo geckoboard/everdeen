@@ -8,9 +8,11 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"time"
 
 	"github.com/geckoboard/everdeen/certs"
+	"github.com/satori/go.uuid"
 	"gopkg.in/elazarl/goproxy.v1"
 )
 
@@ -25,6 +27,7 @@ var (
 	controlAddr      = flag.String("control-addr", ":4322", "Listen address for the control API")
 	caCertPath       = flag.String("ca-cert-path", "", "Path to CA certificate file")
 	caKeyPath        = flag.String("ca-key-path", "", "Path to CA private key file")
+	passthroughMode  = flag.Bool("passthrough-mode", false, "Start up everdeen and default all proxied traffic to passthrough")
 	requestBaseStore = flag.String("request-base-store", path.Join(os.TempDir(), "everdeenStore"), "Base store for matching requests")
 	generateCA       = flag.Bool("generate-ca-cert", false, "Generate CA certificate and private key for MITM")
 )
@@ -49,6 +52,7 @@ func startProxy() {
 	fmt.Printf("Version: %s (git sha: %s)\n", Version, GitSHA)
 	fmt.Printf("Proxy Address: %s\n", *proxyAddr)
 	fmt.Printf("Control Address: %s\n", *controlAddr)
+	fmt.Printf("Passthrough all traffic: %t\n", *passthroughMode)
 
 	if *caCertPath != "" && *caKeyPath != "" {
 		tlsc, err := tls.LoadX509KeyPair(*caCertPath, *caKeyPath)
@@ -68,6 +72,23 @@ func startProxy() {
 		Proxy:        proxy,
 		expectations: []*Expectation{},
 	}
+
+	if *passthroughMode {
+		exp := Expectation{
+				Uuid: uuid.NewV4(),
+				PassThrough: true,
+				RequestCriteria: Criteria{
+					{
+						Type:  CriteriaTypeHost,
+						regexp: regexp.MustCompile(".*"),
+						MatchType: MatchTypeRegex,
+					},
+				},
+			}
+
+		server.expectations = append(server.expectations, &exp)
+	}
+
 	http.Handle("/", server)
 	go http.ListenAndServe(*controlAddr, nil)
 
