@@ -6,7 +6,7 @@ machine:
 dependencies:
   override:
     - rvm use 2.1.5@deployment-tooling --create && echo "deployment-tooling" > .ruby-gemset
-    - make install-ci-deps
+    - make update-deps install-ci-deps
     # This helps reduce size of directories we have to cache between builds => faster builds
     - find `rvm gemset gemdir` -type d -name ext | xargs rm -rf
   cache_directories:
@@ -14,6 +14,13 @@ dependencies:
     # Used to cache things installed by pip
     - ~/.local
 test:
+  pre:
+    # These steps are necessary if you want to test code that references subpackages within
+    # this project. Circleci does not checkout the project in a go workspace
+    - rm -rf $HOME/.go_workspace/src/github.com/geckoboard/everdeen
+    - mkdir -p $HOME/.go_workspace/src/github.com/geckoboard
+    - mv $HOME/everdeen $HOME/.go_workspace/src/github.com/geckoboard/everdeen
+    - ln -sf $HOME/.go_workspace/src/github.com/geckoboard/everdeen $HOME/everdeen
   override:
     - make test
 deployment:
