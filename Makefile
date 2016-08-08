@@ -43,6 +43,7 @@ install-ci-deps:
 	(gem list | grep fpm > /dev/null) || gem install fpm --no-ri --no-rdoc --version $(FPM_VERSION)
 	(gem list | grep deb-s3 > /dev/null) || gem install deb-s3 --no-ri --no-rdoc --version $(DEB_S3_VERSION)
 	(pip freeze --user | grep "awscli==$(AWS_CLI_VERSION)" > /dev/null) || sudo pip install --ignore-installed --user awscli==$(AWS_CLI_VERSION)
+	cd ruby_client && bundle install -j4
 
 package: build
 	@mkdir -p pkg tmp/bin
