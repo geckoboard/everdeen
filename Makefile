@@ -11,13 +11,13 @@ AWS_CLI_VERSION = 1.7.3
 DEB_VERSION="0.0.0+git~$(GIT_SHA)"
 
 update-deps:
-	go get github.com/mitchellh/gox
 	go list -f '{{if not .Standard}}{{join .Deps "\n"}}{{end}}' ./... \
 	  | sort -u \
 	  | grep -v github.com/geckoboard/$(NAME) \
 	  | xargs go get -f -u -d -v
 
 build: *.go
+	go get github.com/mitchellh/gox
 	rm -rf $(BUILD_DIR)
 	gox -osarch="linux/386 linux/amd64 darwin/amd64" \
 		-output="$(BUILD_DIR)/$(NAME)_$(SERVER_VERSION)_{{.OS}}-{{.Arch}}" \
@@ -45,9 +45,8 @@ install-ci-deps:
 	(pip freeze --user | grep "awscli==$(AWS_CLI_VERSION)" > /dev/null) || sudo pip install --ignore-installed --user awscli==$(AWS_CLI_VERSION)
 
 package: build
-	@mkdir -p pkg tmp/bin tmp/share/spreadsheets
+	@mkdir -p pkg tmp/bin
 	@cp bin/* tmp/bin
-	@cp -r migrate/migrations tmp/share/spreadsheets/migrations
 	fpm -C tmp -t deb -s dir --name $(NAME) --version $(DEB_VERSION) --prefix /usr/local/ --provides $(NAME) --force .
 	@mv $(NAME)_$(DEB_VERSION)_amd64.deb pkg
 
