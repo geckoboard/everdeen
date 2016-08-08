@@ -59,7 +59,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		s.findRequests(w, r)
-	case "/reset_all":
+	case "/reset/all":
 		if r.Method != "DELETE" {
 			http.Error(w, "everdeen: Method Not Allowed", http.StatusMethodNotAllowed)
 			return

@@ -996,7 +996,7 @@ func TestResetAllEndpointRequest(t *testing.T) {
 	}
 
 	// Now post to the reset_all endpoint
-	req, err := http.NewRequest("DELETE", "/reset_all", nil)
+	req, err := http.NewRequest("DELETE", "/reset/all", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

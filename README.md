@@ -215,11 +215,11 @@ requests.first.body
 #### Resetting all expectations
 
 In cases where you need to reset all registered expectations and stored request stores to its
-initial clean state, you can use the reset\_all endpoint making a `DELETE` request to the
+initial clean state, you can use the `/reset/all` endpoint making a `DELETE` request to the
 control-addr endpoint.
 
 ```
-curl localhost:4322/reset_all -XDELETE
+curl localhost:4322/reset/all -XDELETE
 OK
 ```
 

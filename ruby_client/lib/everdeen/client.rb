@@ -34,7 +34,7 @@ module Everdeen
     end
 
     def reset_all
-      uri = build_uri('/reset_all')
+      uri = build_uri('/reset/all')
       req = Net::HTTP::Delete.new(uri.path)
 
       Net::HTTP.start(uri.host, uri.port) { |http| http.request(req) }
