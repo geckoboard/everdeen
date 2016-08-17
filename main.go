@@ -13,7 +13,7 @@ import (
 
 	"github.com/geckoboard/everdeen/certs"
 	"github.com/satori/go.uuid"
-	"gopkg.in/elazarl/goproxy.v1"
+	"github.com/elazarl/goproxy"
 )
 
 // Injected by the Makefile
