@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"github.com/satori/go.uuid"
-	"gopkg.in/elazarl/goproxy.v1"
+	"github.com/elazarl/goproxy"
 )
 
 type CreateExpectationsRequest struct {

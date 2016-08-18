@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/elazarl/goproxy"
 	"github.com/satori/go.uuid"
-	"gopkg.in/elazarl/goproxy.v1"
 )
 
 type testCase struct {

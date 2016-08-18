@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"gopkg.in/elazarl/goproxy.v1"
+	"github.com/elazarl/goproxy"
 )
 
 func (s *Server) handleProxyRequest(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
