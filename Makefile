@@ -47,7 +47,7 @@ install-ci-deps:
 
 package: build
 	@mkdir -p pkg tmp/bin
-	@cp $(BUILD_DIR)/$(NAME)_$(SERVER_VERSION)_linux-amd64 tmp/bin
+	@cp $(BUILD_DIR)/$(NAME)_$(SERVER_VERSION)_linux-amd64 tmp/bin/everdeen
 	fpm -C tmp -t deb -s dir --name $(NAME) --version $(DEB_VERSION) --prefix /usr/local/ --provides $(NAME) --force .
 	@mv $(NAME)_$(DEB_VERSION)_amd64.deb pkg
 
