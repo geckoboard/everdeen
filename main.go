@@ -92,9 +92,15 @@ func startProxy() {
 	http.Handle("/", server)
 	go http.ListenAndServe(*controlAddr, nil)
 
-	proxy.Verbose = true
 	proxy.OnRequest().HandleConnect(goproxy.AlwaysMitm)
 	proxy.OnRequest().DoFunc(server.handleProxyRequest)
+
+	// Used for logging out responses that pass through to the third party to
+	// allow easy setup of new mock responses
+	proxy.OnResponse().DoFunc(func(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
+		logProxyRequestResponse(resp)
+		return resp
+	})
 	log.Fatal(http.ListenAndServe(*proxyAddr, proxy))
 }
 
