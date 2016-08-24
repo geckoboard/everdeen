@@ -17,8 +17,6 @@ func (s *Server) handleProxyRequest(r *http.Request, ctx *goproxy.ProxyCtx) (*ht
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	logProxyRequest(r)
-
 	expectation, err := s.findMatchingExpectation(r)
 	if err != nil {
 		return r, goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusBadGateway, fmt.Sprintf("everdeen: %s", err))

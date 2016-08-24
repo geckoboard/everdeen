@@ -1,75 +1,29 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"fmt"
 	"log"
 	"net/http"
+	"net/http/httputil"
 )
 
-type requestLog struct {
-	URL     string
-	Method  string
-	Headers map[string][]string
-	Body    string
-}
+var (
+	reqRespLogLine = "Proxy response for request: %s\n**** Request ****\n%s\n**** Response ****\n%s\n\n\n"
+)
 
-type responseLog struct {
-	Status  int
-	Headers map[string][]string
-	Body    string
-}
-
-func logProxyRequest(r *http.Request) {
-	b, err := ioutil.ReadAll(r.Body)
+func logProxyRequestResponse(req *http.Request, resp *http.Response) {
+	reqBytes, err := httputil.DumpRequest(req, false)
 	if err != nil {
-		log.Printf("Failed to read body from request: %s", err)
-		return
+		log.Printf("Error dumping request: %v", req)
 	}
 
-	r.Body.Close()
-	r.Body = ioutil.NopCloser(bytes.NewReader(b))
-
-	rl := &requestLog{
-		URL:     r.URL.String(),
-		Method:  r.Method,
-		Headers: r.Header,
-		Body:    string(b),
-	}
-
-	rb, err := json.MarshalIndent(rl, "", "  ")
+	respBytes, err := httputil.DumpResponse(resp, true)
 	if err != nil {
-		log.Printf("Error marshal request for logging %s", err)
-		return
+		log.Printf("Error dumping response: %v", req)
 	}
 
-	log.Printf("Request through proxy:\n%s\n", string(rb))
-}
-
-func logProxyRequestResponse(r *http.Response) {
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Printf("Failed to read body from response: %s", err)
-		return
-	}
-
-	r.Body.Close()
-	r.Body = ioutil.NopCloser(bytes.NewReader(b))
-
-	rl := &responseLog{
-		Status:  r.StatusCode,
-		Headers: r.Header,
-		Body:    string(b),
-	}
-
-	rb, err := json.MarshalIndent(rl, "", "  ")
-	if err != nil {
-		log.Printf("Error marshaling response for logging %s", err)
-		return
-	}
-
-	log.Printf("Proxy response for %s\n%s\n", r.Request.URL, string(rb))
+	fmt.Printf(reqRespLogLine, req.URL.String(), reqBytes, respBytes)
 }
 
 func logExpectationRequest(exp []*Expectation) {
