@@ -11,9 +11,9 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/elazarl/goproxy"
 	"github.com/geckoboard/everdeen/certs"
 	"github.com/satori/go.uuid"
-	"github.com/elazarl/goproxy"
 )
 
 // Injected by the Makefile
@@ -75,16 +75,16 @@ func startProxy() {
 
 	if *passthroughMode {
 		exp := Expectation{
-				Uuid: uuid.NewV4(),
-				PassThrough: true,
-				RequestCriteria: Criteria{
-					{
-						Type:  CriteriaTypeHost,
-						regexp: regexp.MustCompile(".*"),
-						MatchType: MatchTypeRegex,
-					},
+			Uuid:        uuid.NewV4(),
+			PassThrough: true,
+			RequestCriteria: Criteria{
+				{
+					Type:      CriteriaTypeHost,
+					regexp:    regexp.MustCompile(".*"),
+					MatchType: MatchTypeRegex,
 				},
-			}
+			},
+		}
 
 		server.expectations = append(server.expectations, &exp)
 	}
@@ -92,9 +92,15 @@ func startProxy() {
 	http.Handle("/", server)
 	go http.ListenAndServe(*controlAddr, nil)
 
-	proxy.Verbose = true
 	proxy.OnRequest().HandleConnect(goproxy.AlwaysMitm)
 	proxy.OnRequest().DoFunc(server.handleProxyRequest)
+
+	// Used for logging out responses that pass through the proxy to
+	// allow easy setup of new mock responses
+	proxy.OnResponse().DoFunc(func(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
+		logProxyRequestResponse(ctx.Req, resp)
+		return resp
+	})
 	log.Fatal(http.ListenAndServe(*proxyAddr, proxy))
 }
 
